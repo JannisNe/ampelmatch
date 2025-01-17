@@ -11,6 +11,9 @@ python = "^3.11"
 skysurvey = "^0.17.2"
 ampel-hu-astro = "^0.10.0a5"
 rich = "^13.9.4"
+ztfquery = "^1.28.0"
+tqdm = "^4.67.1"
+fastparquet = "^2024.11.0"
 
 
 [build-system]
