@@ -3,7 +3,7 @@ import logging
 import skysurvey
 
 from ampelmatch.data.positional_uncertainty import BaseUncertainty
-from sncosmo.registry import retrieve
+
 
 logger = logging.getLogger(__name__)
 
