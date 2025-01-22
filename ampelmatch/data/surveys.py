@@ -26,7 +26,7 @@ survey_params = {
         'zp': 30,
         'skynoise_mean': 150,
         'time_min': "2020-03-01",
-        'time_max': "2020-04-01",
+        'time_max': "2021-02-28",
         'bands': ['ztfr'],
         "size": 1000,
         "uncertainty": {
@@ -41,9 +41,9 @@ survey_params = {
         'zp': 30,
         'skynoise_mean': 150,
         'time_min': "2020-03-01",
-        'time_max': "2020-04-01",
+        'time_max': "2021-02-28",
         'bands': ['atlaso'],
-        'size': 100,
+        'size': 1000,
         "uncertainty": {
             "type": "GaussianUncertainty",
             "sigma_arcsec": 3
