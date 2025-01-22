@@ -1,6 +1,5 @@
-import ampelmatch
 import logging
-import skysurvey
+import numpy as np
 from astropy.coordinates import SkyCoord
 
 
@@ -22,6 +21,7 @@ class BaseUncertainty:
 
     @classmethod
     def from_dict(cls, data: dict) -> 'BaseUncertainty':
+        logger.debug(f"Creating uncertainty from dict: {data}")
         if "type" not in data:
             raise ValueError("Uncertainty type not provided")
         _type = data.pop("type")
