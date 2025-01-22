@@ -5,9 +5,10 @@ import numpy as np
 from shapely import geometry
 from astropy.time import Time
 import hashlib
+import json
 from pathlib import Path
 
-from ampelmatch.data.positional_uncertainty import GaussianUncertainty
+from ampelmatch.data.positional_uncertainty import BaseUncertainty
 from ampelmatch.data.positional_survey import PositionalGridSurvey
 from ampelmatch.data.positional_dataset import PositionalDataset
 
@@ -30,7 +31,11 @@ survey_params = {
         'time_min': "2020-03-01",
         'time_max': "2020-04-01",
         'bands': ['ztfg'],
-        "size": 10_000
+        "size": 10_000,
+        "uncertainty": {
+            "type": "GaussianUncertainty",
+            "sigma_arcsec": 1
+        }
     },
     "survey2": {
         "fields": {0: {'ra': field1["ra"] + 2, 'dec': field1["dec"] + 0.4}},
@@ -44,7 +49,7 @@ survey_params = {
         'size': 10_000
     }
 }
-_one_degree_vertices = np.asarray([[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5]])
+
 
 def get_test_observations(survey_name: str):
     """
@@ -53,7 +58,8 @@ def get_test_observations(survey_name: str):
     """
 
     params = survey_params[survey_name]
-    h = hashlib.md5().hexdigest(params)
+    h = hashlib.md5(json.dumps(params).encode()).hexdigest()
+
     fname = Path(f"{survey_name}_{h}.csv")
     if not fname.exists():
         logger.info(f"generating {survey_name} observations")
@@ -73,11 +79,14 @@ def get_test_observations(survey_name: str):
 
 
 def generate_test_surveys():
-    for survey_name in survey_params:
-        survey = PositionalGridSurvey()
+    for survey_name, p in survey_params.items():
+        uncertainty = BaseUncertainty.from_dict(p["uncertainty"])
+        data = get_test_observations(survey_name)
+        _one_degree_vertices = np.asarray([[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5]])
+        footprint = geometry.Polygon(_one_degree_vertices * p["fov"])
+        yield PositionalGridSurvey.from_pointings(data, p["fields"], footprint, uncertainty=uncertainty)
 
 
 if __name__ == "__main__":
     logging.getLogger("ampelmatch").setLevel(logging.DEBUG)
-    # generate_test_data()
-    ge()
+    surveys = list(generate_test_surveys())
