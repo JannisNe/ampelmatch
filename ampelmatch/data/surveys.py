@@ -28,7 +28,7 @@ survey_params = {
         'time_min': "2020-03-01",
         'time_max': "2021-02-28",
         'bands': ['ztfr'],
-        "size": 1000,
+        "size": 100,
         "uncertainty": {
             "type": "GaussianUncertainty",
             "sigma_arcsec": 1
@@ -38,12 +38,12 @@ survey_params = {
         "fields": {k: {'ra': v['ra'] + 0.1, 'dec': v['dec'] - 0.2} for k, v in fields.items()},
         'fov': 5,
         'gain': 1,
-        'zp': 30,
-        'skynoise_mean': 150,
+        'zp': 28,
+        'skynoise_mean': 200,
         'time_min': "2020-03-01",
         'time_max': "2021-02-28",
         'bands': ['atlaso'],
-        'size': 1000,
+        'size': 100,
         "uncertainty": {
             "type": "GaussianUncertainty",
             "sigma_arcsec": 3
