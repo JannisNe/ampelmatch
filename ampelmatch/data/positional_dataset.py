@@ -1,4 +1,4 @@
-import ampelmatch
+import numpy as np
 import logging
 import skysurvey
 
@@ -21,5 +21,14 @@ class PositionalDataset(skysurvey.DataSet):
         lc_out, fieldids_indexes = skysurvey.DataSet._realize_survey_kindtarget_lcs(
             targets, survey, template, template_prop, nfirst, incl_error, client, discard_bands
         )
-        # TODO: implement drawing positions and errors
+        for c in unc.POSITION_KEYS + unc.PARAMETER_KEYS:
+            lc_out[0][c] = np.nan
+
+        for ilc, ifid in zip(lc_out, fieldids_indexes):
+            for target_index in ilc.index.levels[0]:
+                iilc = ilc.loc[target_index]
+                parameters = unc.draw_position(iilc, truth=targets.data.loc[target_index])
+                for c, v in zip(unc.POSITION_KEYS + unc.PARAMETER_KEYS, parameters):
+                    ilc.loc[target_index, c] = v
+
         return lc_out, fieldids_indexes

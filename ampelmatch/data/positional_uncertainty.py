@@ -1,6 +1,8 @@
 import logging
 import numpy as np
+import pandas as pd
 from astropy.coordinates import SkyCoord
+import astropy.units as u
 
 
 logger = logging.getLogger(__name__)
@@ -8,8 +10,10 @@ logger = logging.getLogger(__name__)
 
 class BaseUncertainty:
     registry = {}
+    POSITION_KEYS = ["ra", "dec"]
+    PARAMETER_KEYS = []
 
-    def draw_position(self, n: int, truth: tuple[float, float]) -> list[tuple[float, float]]:
+    def draw_position(self, lc_in: pd.DataFrame, truth: pd.Series) -> tuple:
         ...
 
     @classmethod
@@ -31,12 +35,15 @@ class BaseUncertainty:
 
 
 class GaussianUncertainty(BaseUncertainty):
+
+    PARAMETER_KEYS = ["sigma_arcsec"]
+
     def __init__(self, sigma_arcsec: float):
         self.sigma = sigma_arcsec
 
-    def draw_position(self, n: int, truth: tuple[float, float]) -> list[tuple[float, float]]:
-        coords = SkyCoord(*truth, unit='deg')
-        offsets = np.random.normal(0, self.sigma, n)
-        ps = np.random.uniform(0, 2 * np.pi, n)
+    def draw_position(self, lc_in: pd.DataFrame, truth: pd.Series) -> tuple:
+        coords = SkyCoord(truth["ra"], truth["dec"], unit='deg')
+        offsets = np.random.normal(0, self.sigma, len(lc_in))
+        ps = np.random.uniform(0, 2 * np.pi, len(lc_in))
         new_coords = coords.directional_offset_by(ps, offsets * u.arcsec)
-        return [(c.ra.deg, c.dec.deg) for c in new_coords]
+        return new_coords.ra.deg, new_coords.dec.deg, [self.sigma] * len(lc_in)
