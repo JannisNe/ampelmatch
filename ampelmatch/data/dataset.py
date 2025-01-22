@@ -30,7 +30,7 @@ def generate_transient_data(survey_name: str, survey: skysurvey.Survey,  transie
     return PositionalDataset(data, targets, survey)
 
 
-def generate_test_data():
+def generate_test_data() -> list:
     for sname, survey in generate_test_surveys():
         dfs = []
         for tname, t in generate_transient_sample():
