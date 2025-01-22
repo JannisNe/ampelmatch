@@ -1,5 +1,5 @@
 import logging
-
+import numpy as np
 import pandas as pd
 import skysurvey
 import hashlib
@@ -7,16 +7,17 @@ import json
 from pathlib import Path
 from shapely import union_all
 
-from ampelmatch.data.surveys import survey_params, get_survey_hash, generate_test_surveys
+from ampelmatch.data.surveys import survey_params, generate_test_surveys
 
 
 logger = logging.getLogger(__name__)
 
 
+zmax = 1
 transient_config = {
-    "zmax": 1,
     "SNeIa": {
-        "draw": 10_000
+        "draw": 10_000,
+        "zmax": zmax
     }
 }
 
@@ -35,7 +36,7 @@ def get_surveys_info():
 
 
 def get_transient_hash(transient_name: str):
-    d = transient_config[transient_name].update(survey_params).update({"zmax": transient_config['zmax']})
+    d = transient_config[transient_name].update(survey_params)
     return hashlib.md5(json.dumps(d).encode()).hexdigest()
 
 
@@ -48,7 +49,7 @@ def generate_transient_sample():
             t = skysurvey.__getattribute__(transient_name).from_draw(
                 tstart=tstart, tstop=tstop,
                 skyarea=skyarea,
-                zmax=transient_config['zmax']
+                zmax=config['zmax']
             )
             t.save(fname)
             logger.info(f"Saved {config['draw']} {transient_name} transients to {fname}")
