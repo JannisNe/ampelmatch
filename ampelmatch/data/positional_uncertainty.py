@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 class BaseUncertainty:
-    def draw_position(self, n: int, truth: tuple(float, float)) -> list[tuple[float, float]]:
+    def draw_position(self, n: int, truth: tuple[float, float]) -> list[tuple[float, float]]:
         ...
 
 
