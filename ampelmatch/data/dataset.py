@@ -26,7 +26,8 @@ def generate_transient_data(survey_name: str, survey: skysurvey.Survey,  transie
         logger.info(f"Generating {transient_name} transients for {survey_name}")
         PositionalDataset.from_targets_and_survey(targets, survey).data.to_csv(fname)
         logger.info(f"Saved {transient_name} transients for {survey_name} to {fname}")
-    return pd.read_csv(fname, index_col=0)
+    data = pd.read_csv(fname, index_col=[0, 1])
+    return PositionalDataset(data, targets, survey)
 
 
 def generate_test_data():
@@ -34,4 +35,4 @@ def generate_test_data():
         dfs = []
         for tname, t in generate_transient_sample():
             dfs.append(generate_transient_data(sname, survey, tname, t))
-        yield sname, pd.concat(dfs)
+        yield dfs
