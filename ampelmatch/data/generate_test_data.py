@@ -13,12 +13,8 @@ from ampelmatch.data.positional_survey import PositionalGridSurvey
 from ampelmatch.data.positional_dataset import PositionalDataset
 
 
-logger = logging.getLogger("ampelmatch.data.generate_test_data")
+logger = logging.getLogger(__name__)
 
-
-def generate_transient_sample():
-    snia = skysurvey.SNeIa().draw(10_000)
-    snia.to_csv("snia.csv")
 
 fields = {
     0: {'ra': +150.11916667, 'dec': +2.20583333},
@@ -58,6 +54,11 @@ survey_params = {
 }
 
 
+def get_survey_hash(survey_name: str):
+    params = survey_params[survey_name]
+    return hashlib.md5(json.dumps(params).encode()).hexdigest()
+
+
 def get_test_observations(survey_name: str):
     """
     generate observations by two overlapping mock surveys that observe one field each
@@ -65,7 +66,7 @@ def get_test_observations(survey_name: str):
     """
 
     params = survey_params[survey_name]
-    h = hashlib.md5(json.dumps(params).encode()).hexdigest()
+    h = get_survey_hash(survey_name)
 
     fname = Path(f"{survey_name}_{h}.csv")
     if not fname.exists():
@@ -91,9 +92,4 @@ def generate_test_surveys():
         data = get_test_observations(survey_name)
         _one_degree_vertices = np.asarray([[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5]])
         footprint = geometry.Polygon(_one_degree_vertices * p["fov"])
-        yield PositionalGridSurvey.from_pointings(data, p["fields"], footprint, uncertainty=uncertainty)
-
-
-if __name__ == "__main__":
-    logging.getLogger("ampelmatch").setLevel(logging.DEBUG)
-    surveys = list(generate_test_surveys())
+        yield survey_name, PositionalGridSurvey.from_pointings(data, p["fields"], footprint, uncertainty=uncertainty)
