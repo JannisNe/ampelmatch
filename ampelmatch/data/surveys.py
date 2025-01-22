@@ -28,7 +28,7 @@ survey_params = {
         'time_min': "2020-03-01",
         'time_max': "2020-04-01",
         'bands': ['ztfr'],
-        "size": 10_000,
+        "size": 1000,
         "uncertainty": {
             "type": "GaussianUncertainty",
             "sigma_arcsec": 1
@@ -43,7 +43,7 @@ survey_params = {
         'time_min': "2020-03-01",
         'time_max': "2020-04-01",
         'bands': ['atlaso'],
-        'size': 10_000,
+        'size': 100,
         "uncertainty": {
             "type": "GaussianUncertainty",
             "sigma_arcsec": 3
@@ -81,10 +81,12 @@ def get_test_observations(survey_name: str):
         logger.info(f"generated {size} observations for survey {survey_name}")
         data.to_csv(fname)
         logger.info(f"saved to {fname}")
+    logger.debug(f"loading observations from {fname}")
     return pd.read_csv(fname, index_col=0)
 
 
 def generate_test_surveys():
+    logger.info("generating test surveys")
     for survey_name, p in survey_params.items():
         logger.debug(f"generating survey {survey_name}: {p}")
         uncertainty = BaseUncertainty.from_dict(dict(p["uncertainty"]))
