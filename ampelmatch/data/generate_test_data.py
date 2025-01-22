@@ -46,7 +46,11 @@ survey_params = {
         'time_min': "2020-03-01",
         'time_max': "2020-04-01",
         'bands': ['ztfg'],
-        'size': 10_000
+        'size': 10_000,
+        "uncertainty": {
+            "type": "GaussianUncertainty",
+            "sigma_arcsec": 3
+        }
     }
 }
 
