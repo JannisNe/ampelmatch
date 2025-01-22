@@ -12,7 +12,6 @@ if __name__ == '__main__':
     logging.getLogger("ampelmatch").info("Generating test data")
     d = list(generate_test_data())
     n_det = [[ddd.get_ndetection() for ddd in dd] for dd in d]
-    print(n_det)
     max_i = [max(indet.index) for ndet in n_det for indet in ndet]
 
     i = 0
@@ -25,7 +24,7 @@ if __name__ == '__main__':
             fig, ax = plt.subplots()
             for il, l in enumerate(d):
                 try:
-                    l[j].show_target_lightcurve(index=i, ax=ax, label=f"Survey {j}")
+                    l[j].show_target_lightcurve(index=i, ax=ax, label=f"Survey {il}")
                 except KeyError:
                     logger.info(f"Survey {j} does not have target {i}")
             ax.legend()
