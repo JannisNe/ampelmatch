@@ -55,7 +55,7 @@ def generate_transient_sample():
                 zmax=config['zmax'],
                 inplace=True
             )
-            t.data.save(fname)
+            t.data.to_csv(fname)
             logger.info(f"Saved {config['draw']} {transient_name} transients to {fname}")
         t.set_data(pd.read_csv(fname, index_col=0))
         yield transient_name, t
