@@ -42,7 +42,7 @@ survey_params = {
         'skynoise_mean': 150,
         'time_min': "2020-03-01",
         'time_max': "2020-04-01",
-        'bands': ['ztfg'],
+        'bands': ['atlaso'],
         'size': 10_000,
         "uncertainty": {
             "type": "GaussianUncertainty",
