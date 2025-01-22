@@ -15,7 +15,11 @@ class PositionalDataset(skysurvey.DataSet):
                                            template_prop={}, nfirst=None,
                                            incl_error=True,
                                            client=None, discard_bands=False):
-        assert isinstance(survey, BaseUncertainty), "Survey must have uncertainties"
-        lc_out, fieldids_indexes = super()._realize_survey_kindtarget_lcs()
+        assert hasattr(survey, 'uncertainty'), "Survey must have uncertainties"
+        unc = survey.uncertainty
+        assert isinstance(unc, BaseUncertainty), "uncertainty must be a subclass of BaseUncertainty"
+        lc_out, fieldids_indexes = skysurvey.DataSet._realize_survey_kindtarget_lcs(
+            targets, survey, template, template_prop, nfirst, incl_error, client, discard_bands
+        )
         # TODO: implement drawing positions and errors
         return lc_out, fieldids_indexes
