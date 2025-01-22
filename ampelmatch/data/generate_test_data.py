@@ -20,10 +20,13 @@ def generate_transient_sample():
     snia = skysurvey.SNeIa().draw(10_000)
     snia.to_csv("snia.csv")
 
-field1 = {'ra': +150.11916667, 'dec': +2.20583333}
+fields = {
+    0: {'ra': +150.11916667, 'dec': +2.20583333},
+    1: {'ra': +10.11916667, 'dec': -2.60583333}
+}
 survey_params = {
     "survey1": {
-        "fields": {0: field1},
+        "fields": fields,
         'fov': 8,
         'gain': 1,
         'zp': 30,
@@ -38,7 +41,7 @@ survey_params = {
         }
     },
     "survey2": {
-        "fields": {0: {'ra': field1["ra"] + 2, 'dec': field1["dec"] + 0.4}},
+        "fields": {k: {'ra': v['ra'] + 0.1, 'dec': v['dec'] - 0.2} for k, v in fields.items()},
         'fov': 5,
         'gain': 1,
         'zp': 30,
