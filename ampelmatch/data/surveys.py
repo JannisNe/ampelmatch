@@ -1,5 +1,4 @@
 import logging
-import skysurvey
 import pandas as pd
 import numpy as np
 from shapely import geometry
@@ -10,7 +9,6 @@ from pathlib import Path
 
 from ampelmatch.data.positional_uncertainty import BaseUncertainty
 from ampelmatch.data.positional_survey import PositionalGridSurvey
-from ampelmatch.data.positional_dataset import PositionalDataset
 
 
 logger = logging.getLogger(__name__)
@@ -88,7 +86,8 @@ def get_test_observations(survey_name: str):
 
 def generate_test_surveys():
     for survey_name, p in survey_params.items():
-        uncertainty = BaseUncertainty.from_dict(p["uncertainty"])
+        logger.debug(f"generating survey {survey_name}: {p}")
+        uncertainty = BaseUncertainty.from_dict(dict(p["uncertainty"]))
         data = get_test_observations(survey_name)
         _one_degree_vertices = np.asarray([[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5]])
         footprint = geometry.Polygon(_one_degree_vertices * p["fov"])
