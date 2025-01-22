@@ -18,14 +18,12 @@ def get_hash():
     return hashlib.md5(json.dumps(d).encode()).hexdigest()
 
 
-def generate_transient_data(survey_name: str, survey: skysurvey.Survey,  transient_name: str, target_data: pd.DataFrame):
+def generate_transient_data(survey_name: str, survey: skysurvey.Survey,  transient_name: str, targets: skysurvey.Target):
     survey_hash = get_survey_hash(survey_name)
     transient_hash = get_transient_hash(transient_name)
     fname = Path(f"{survey_name}_{survey_hash}_{transient_name}_{transient_hash}.csv")
     if not fname.exists():
         logger.info(f"Generating {transient_name} transients for {survey_name}")
-        targets = skysurvey.__getattribute__(transient_name)
-        targets.set_data(target_data)
         PositionalDataset.from_targets_and_survey(targets, survey).save(fname)
         logger.info(f"Saved {transient_name} transients for {survey_name} to {fname}")
     return pd.read_csv(fname, index_col=0)
@@ -34,6 +32,6 @@ def generate_transient_data(survey_name: str, survey: skysurvey.Survey,  transie
 def generate_test_data():
     for sname, survey in generate_test_surveys():
         dfs = []
-        for t, tdata in generate_transient_sample():
-            dfs.append(generate_transient_data(sname, survey, t, tdata))
+        for tname, t in generate_transient_sample():
+            dfs.append(generate_transient_data(sname, survey, tname, t))
         yield sname, pd.concat(dfs)

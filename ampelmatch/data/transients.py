@@ -1,4 +1,6 @@
 import logging
+from unittest.mock import inplace
+
 import numpy as np
 import pandas as pd
 import skysurvey
@@ -25,7 +27,7 @@ transient_config = {
 def get_surveys_info():
     skyareas = []
     time_ranges = []
-    for s in generate_test_surveys():
+    for sname, s in generate_test_surveys():
         skyareas.append(s.get_skyarea())
         time_ranges.append(s.get_timerange())
     time_ranges = np.array(time_ranges)
@@ -43,14 +45,17 @@ def get_transient_hash(transient_name: str):
 def generate_transient_sample():
     for transient_name, config in transient_config.items():
         fname = Path(f"{transient_name}_{get_transient_hash(transient_name)}.csv")
+        t = skysurvey.__getattribute__(transient_name)()
         if not fname.exists():
             logger.info(f"Generating {config['draw']} {transient_name} transients")
             tstart, tstop, skyarea = get_surveys_info()
-            t = skysurvey.__getattribute__(transient_name).from_draw(
+            t.draw(
                 tstart=tstart, tstop=tstop,
                 skyarea=skyarea,
-                zmax=config['zmax']
+                zmax=config['zmax'],
+                inplace=True
             )
-            t.save(fname)
+            t.data.save(fname)
             logger.info(f"Saved {config['draw']} {transient_name} transients to {fname}")
-        yield transient_name, pd.read_csv(fname, index_col=0)
+        t.set_data(pd.read_csv(fname, index_col=0))
+        yield transient_name, t
