@@ -15,7 +15,7 @@ class PositionalGridSurvey(skysurvey.GridSurvey):
 
     @classmethod
     def from_pointings(cls, data, fields_or_coords=None, footprint=None, uncertainty: BaseUncertainty = None, **kwargs):
-        _survey = super().from_pointings(data, fields_or_coords, footprint, **kwargs)
+        _survey = skysurvey.GridSurvey.from_pointings(data, fields_or_coords, footprint, **kwargs)
         _survey.uncertainty = uncertainty
         return _survey
 
