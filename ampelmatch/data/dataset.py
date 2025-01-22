@@ -24,7 +24,7 @@ def generate_transient_data(survey_name: str, survey: skysurvey.Survey,  transie
     fname = Path(f"{survey_name}_{survey_hash}_{transient_name}_{transient_hash}.csv")
     if not fname.exists():
         logger.info(f"Generating {transient_name} transients for {survey_name}")
-        PositionalDataset.from_targets_and_survey(targets, survey).save(fname)
+        PositionalDataset.from_targets_and_survey(targets, survey).data.to_csv(fname)
         logger.info(f"Saved {transient_name} transients for {survey_name} to {fname}")
     return pd.read_csv(fname, index_col=0)
 
