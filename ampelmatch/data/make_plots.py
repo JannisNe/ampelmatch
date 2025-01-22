@@ -21,14 +21,22 @@ if __name__ == '__main__':
             while not all([i in _ndet[j] for _ndet in n_det]):
                 i += 1
             logger.info(f"Plotting target {i}")
+
             fig, ax = plt.subplots()
             for il, l in enumerate(d):
-                try:
-                    l[j].show_target_lightcurve(index=i, ax=ax, label=f"Survey {il}")
-                except KeyError:
-                    logger.info(f"Survey {j} does not have target {i}")
+                l[j].show_target_lightcurve(index=i, ax=ax, label=f"Survey {il}")
             ax.legend()
             fig.savefig(f"target_{j}_{i}.pdf")
             plt.close()
+
+            fig, ax = plt.subplots()
+            for il, l in enumerate(d):
+                lc = l[j].get_target_lightcurve(index=i)
+                ax.scatter(lc["ra"], lc["dec"], label=f"Survey {il}")
+            ax.legend()
+            ax.set_aspect("equal")
+            fig.savefig(f"target_{j}_{i}_pos.pdf")
+            plt.close()
+
             n_plotted += 1
             i += 1
