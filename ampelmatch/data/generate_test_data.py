@@ -27,7 +27,7 @@ survey_params = {
         'fov': 8,
         'gain': 1,
         'zp': 30,
-        'skynoise': 150,
+        'skynoise_mean': 150,
         'time_min': "2020-03-01",
         'time_max': "2020-04-01",
         'bands': ['ztfg'],
@@ -75,7 +75,7 @@ def get_test_observations(survey_name: str):
         data["skynoise"] = np.random.normal(loc=params["skynoise_mean"], scale=20, size=size)
         data["mjd"] = np.random.uniform(Time(params["time_min"]).mjd, Time(params["time_max"]).mjd, size=size)
         data["band"] = np.random.choice(params["bands"], size=size)
-        data = pandas.DataFrame.from_dict(data)
+        data = pd.DataFrame.from_dict(data)
         logger.info(f"generated {size} observations for survey {survey_name}")
         data.to_csv(fname)
         logger.info(f"saved to {fname}")
