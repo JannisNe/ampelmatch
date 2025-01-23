@@ -14,6 +14,7 @@ rich = "^13.9.4"
 ztfquery = "^1.28.0"
 tqdm = "^4.67.1"
 fastparquet = "^2024.11.0"
+cartopy = "^0.24.1"
 
 
 [build-system]
