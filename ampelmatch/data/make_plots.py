@@ -58,12 +58,12 @@ if __name__ == '__main__':
             xy[flag_egde] = ((xy[flag_egde] + origin) % 360 - origin)
             geodf["xy"] = list(xy)
             ax.add_collection(PolyCollection(
-                geodf["xy"], transform=t, color=f"C{dddi}", label=f"Survey {dddi}", alpha=0.5, edgecolor="none"
+                geodf["xy"], transform=t, ec=f"C{dddi}", label=f"Survey {dddi}", alpha=0.5, fc="none"
             ))
             targets = ddd.targets
             det_ids = n_det[dddi][j].index
             det = targets.data.loc[det_ids]
-            ax.scatter(det["ra"], det["dec"], transform=t, color=f"C{dddi}")
+            ax.scatter(det["ra"], det["dec"], transform=t, color=f"C{dddi}", s=1)
 
         # ax.autoscale()
         ax.set_global()
