@@ -1,38 +1,37 @@
 import logging
-import hashlib
-import json
-from pathlib import Path
 import skysurvey
-import pandas as pd
+import diskcache
+import itertools
 
+from ampelmatch.data.config import DatasetConfig
 from ampelmatch.data.positional_dataset import PositionalDataset
-from ampelmatch.data.transients import transient_config, get_transient_hash, generate_transient_sample
-from ampelmatch.data.surveys import survey_params, get_survey_hash, generate_test_surveys
+from ampelmatch.data.transients import TransientGenerator
+from ampelmatch.data.surveys import SurveyGenerator
 
 
 logger = logging.getLogger(__name__)
+cache = diskcache.Cache()
 
 
-def get_hash():
-    d = transient_config.update(survey_params)
-    return hashlib.md5(json.dumps(d).encode()).hexdigest()
+class DatasetGenerator:
 
+    def __init__(self, config: DatasetConfig):
+        self.config = config
+        self.surveys = SurveyGenerator(config.surveys)
+        self.transients = TransientGenerator(config.transients)
+        self.iter_configs = itertools.product(self.surveys, self.transients)
 
-def generate_transient_data(survey_name: str, survey: skysurvey.Survey,  transient_name: str, targets: skysurvey.Target):
-    survey_hash = get_survey_hash(survey_name)
-    transient_hash = get_transient_hash(transient_name)
-    fname = Path(f"{survey_name}_{survey_hash}_{transient_name}_{transient_hash}.csv")
-    if not fname.exists():
-        logger.info(f"Generating {transient_name} transients for {survey_name}")
-        PositionalDataset.from_targets_and_survey(targets, survey).data.to_csv(fname)
-        logger.info(f"Saved {transient_name} transients for {survey_name} to {fname}")
-    data = pd.read_csv(fname, index_col=[0, 1])
-    return PositionalDataset(data, targets, survey)
+    def __iter__(self):
+        return self
 
+    def __next__(self):
+        survey, transient = next(self.iter_configs)
+        logger.info(f"Generating dataset for {survey.name} and {transient.name}")
+        data = self.realize_data(survey, transient)
+        dset = PositionalDataset(survey, transient, data)
+        return dset
 
-def generate_test_data() -> list:
-    for sname, survey in generate_test_surveys():
-        dfs = []
-        for tname, t in generate_transient_sample():
-            dfs.append(generate_transient_data(sname, survey, tname, t))
-        yield dfs
+    @staticmethod
+    @cache.memoize()
+    def realize_data(survey: skysurvey.Survey, targets: skysurvey.Target):
+        return PositionalDataset.from_targets_and_survey(targets, survey).data

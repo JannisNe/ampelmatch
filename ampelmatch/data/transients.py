@@ -1,60 +1,42 @@
 import logging
-
-import numpy as np
-import pandas as pd
 import skysurvey
-import hashlib
-import json
-from pathlib import Path
-from shapely import union_all
+import diskcache
 
-from ampelmatch.data.surveys import survey_params, generate_test_surveys
+from ampelmatch.data.config import TransientConfig
 
 
 logger = logging.getLogger(__name__)
+cache = diskcache.Cache()
 
 
-zmax = 1
-transient_config = {
-    "SNeIa": {
-        "draw": 10_000,
-        "zmax": zmax
+class TransientGenerator:
+    transient_classes = {
+        "SNeIa": skysurvey.SNeIa
     }
-}
 
+    def __init__(self, configs: list[TransientConfig]):
+        self.configs = configs
+        self.iter_config = iter(configs)
 
-def get_surveys_info():
-    skyareas = []
-    time_ranges = []
-    for sname, s in generate_test_surveys():
-        skyareas.append(s.get_skyarea())
-        time_ranges.append(s.get_timerange())
-    time_ranges = np.array(time_ranges)
-    t_start = np.min(time_ranges[:, 0])
-    t_stop = np.max(time_ranges[:, 1])
-    skyarea = union_all(skyareas)
-    return t_start, t_stop, skyarea
+    @staticmethod
+    @cache.memoize()
+    def realize_transient_data(config):
+        transient = TransientGenerator.transient_classes[config.name]()
+        transient.draw(
+            tstart=config.tstart,
+            tstop=config.tstop,
+            zmax=config.zmax,
+            inplace=True
+        )
+        logger.info(f"Generated {len(transient.data)} {config.name} transients")
+        return transient.data
 
+    def __iter__(self):
+        logger.debug("Generating test transients")
+        return self
 
-def get_transient_hash(transient_name: str):
-    d = transient_config[transient_name].update(survey_params)
-    return hashlib.md5(json.dumps(d).encode()).hexdigest()
-
-
-def generate_transient_sample():
-    for transient_name, config in transient_config.items():
-        fname = Path(f"{transient_name}_{get_transient_hash(transient_name)}.csv")
-        t = skysurvey.__getattribute__(transient_name)()
-        if not fname.exists():
-            logger.info(f"Generating {config['draw']} {transient_name} transients")
-            tstart, tstop, skyarea = get_surveys_info()
-            t.draw(
-                tstart=tstart, tstop=tstop,
-                skyarea=skyarea,
-                zmax=config['zmax'],
-                inplace=True
-            )
-            t.data.to_csv(fname)
-            logger.info(f"Saved {config['draw']} {transient_name} transients to {fname}")
-        t.set_data(pd.read_csv(fname, index_col=0))
-        yield transient_name, t
+    def __next__(self):
+        config = next(self.iter_config)
+        transient = self.transient_classes[config.name]()
+        transient.set_data(self.realize_transient_data(config))
+        return transient
