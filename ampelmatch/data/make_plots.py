@@ -8,6 +8,49 @@ from ampelmatch.data.dataset import generate_test_data
 
 logger = logging.getLogger("ampelmatch.data.make_plots")
 
+fields = {
+    0: {'ra': +150.11916667, 'dec': +2.20583333},
+    1: {'ra': +10.11916667, 'dec': -2.60583333}
+}
+survey_params = {
+    "survey1": {
+        "fields": fields,
+        'fov': 10,
+        'gain': 1,
+        'zp': 30,
+        'skynoise_mean': 150,
+        'time_min': "2020-03-01",
+        'time_max': "2021-02-28",
+        'bands': ['ztfr'],
+        "size": 100,
+        "uncertainty": {
+            "type": "GaussianUncertainty",
+            "sigma_arcsec": 1
+        }
+    },
+    "survey2": {
+        "fields": {k: {'ra': v['ra'] + 0.1, 'dec': v['dec'] - 0.2} for k, v in fields.items()},
+        'fov': 5,
+        'gain': 1,
+        'zp': 28,
+        'skynoise_mean': 200,
+        'time_min': "2020-03-01",
+        'time_max': "2021-02-28",
+        'bands': ['atlaso'],
+        'size': 100,
+        "uncertainty": {
+            "type": "GaussianUncertainty",
+            "sigma_arcsec": 3
+        }
+    }
+}
+transient_config = {
+    "SNeIa": {
+        "draw": 10_000,
+        "zmax": 1
+    }
+}
+
 
 if __name__ == '__main__':
     logging.getLogger("ampelmatch").setLevel("INFO")
