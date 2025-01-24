@@ -8,7 +8,7 @@ logger = logging.getLogger("ampelmatch.data.make_plots")
 
 fields = {
     0: {'ra': +150.11916667, 'dec': +2.20583333},
-    1: {'ra': +10.11916667, 'dec': -2.60583333}
+    1: {'ra': +120.11916667, 'dec': -2.60583333}
 }
 survey_params = [
     {
@@ -66,4 +66,4 @@ if __name__ == '__main__':
     logging.getLogger("ampelmatch").setLevel("DEBUG")
     logging.getLogger("ampelmatch").info("Generating test data")
     c = DatasetConfig.model_validate(dataset_config)
-    Plotter(c).make_plots()
+    Plotter(c).make_plots(n_lightcurves=0)
