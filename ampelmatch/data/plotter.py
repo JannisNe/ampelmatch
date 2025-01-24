@@ -17,6 +17,7 @@ class Plotter:
         self.datasets = DatasetGenerator(config)
         self.config = config
         self.dir = Path(config.name)
+        self.dir.mkdir(exist_ok=True)
         self.batch_size = len(self.config.surveys)
 
     def batched(self):
@@ -28,7 +29,6 @@ class Plotter:
                 dsets = []
 
     def make_plots(self):
-        n_surveys = len(self.config.surveys)
         for i, dsets in enumerate(self.batched()):
             logger.info(f"Generating plots for dataset {i}")
             n_det = [d.get_ndetection() for d in dsets]
@@ -63,14 +63,13 @@ class Plotter:
 
     @staticmethod
     def sky_plot(dsets, n_det):
-        logger.info(f"Plotting sky coverage for transient {j}")
+        logger.info(f"Plotting sky coverage")
         origin = 180
         t = ccrs.PlateCarree(central_longitude=origin)
         fig = plt.figure()
         ax = fig.add_axes((0.15, 0.22, 0.75, 0.75), projection=ccrs.Mollweide())
-        for dddi, ddd in enumerate([dsets]):
+        for dddi, ddd in enumerate(dsets):
             s = ddd.survey
-            data = s.get_fieldstat(stat="size", columns=None, incl_zeros=True, fillna=np.nan, data=None)
             geodf = s.fields.copy()
             xy = np.stack(geodf["geometry"].apply(lambda x: ((np.asarray(x.exterior.xy)).T)).values)
             # correct edge effects
