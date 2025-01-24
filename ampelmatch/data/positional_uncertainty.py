@@ -26,9 +26,9 @@ class BaseUncertainty:
     @classmethod
     def from_dict(cls, data: dict) -> 'BaseUncertainty':
         logger.debug(f"Creating uncertainty from dict: {data}")
-        if "type" not in data:
+        if "uncertainty_type" not in data:
             raise ValueError("Uncertainty type not provided")
-        _type = data.pop("type")
+        _type = data.pop("uncertainty_type")
         if _type not in BaseUncertainty.registry:
             raise ValueError(f"Uncertainty type not recognized: {_type}")
         return BaseUncertainty.registry[_type](**data)

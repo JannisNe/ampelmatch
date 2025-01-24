@@ -10,14 +10,18 @@ class BaseUncertaintyConfig(BaseModel):
     """
     Configuration class for uncertainties
     """
-    type: str
+    uncertainty_type: str
 
 
 class GaussianUncertaintyConfig(BaseUncertaintyConfig):
     """
     Configuration class for Gaussian uncertainties
     """
+    uncertainty_type: Literal["GaussianUncertainty"]
     sigma_arcsec: float
+
+
+Uncertainty = Annotated[Union[GaussianUncertaintyConfig], Field(..., discriminator="uncertainty_type")]
 
 
 class BasePositionalSurveyConfig(BaseModel):
@@ -33,7 +37,7 @@ class BasePositionalSurveyConfig(BaseModel):
     time_max: str
     bands: list
     size: int
-    uncertainty: BaseUncertaintyConfig
+    uncertainty: Uncertainty
 
 
 class PositionalGridSurveyConfig(BasePositionalSurveyConfig):
@@ -52,11 +56,21 @@ class TransientConfig(BaseModel):
     """
     Configuration class for transients
     """
-    name: str
+    transient_type: str
     draw: int
     zmax: float
     tstart: str
     tstop: str
+
+
+class SNIaConfig(TransientConfig):
+    """
+    Configuration class for SNIa transients
+    """
+    transient_type: Literal["SNIa"]
+
+
+Transient = Annotated[Union[SNIaConfig], Field(..., discriminator="transient_type")]
 
 
 class DatasetConfig(BaseModel):
@@ -65,4 +79,4 @@ class DatasetConfig(BaseModel):
     """
     name: str
     surveys: list[Survey]
-    transients: list[TransientConfig]
+    transients: list[Transient]
