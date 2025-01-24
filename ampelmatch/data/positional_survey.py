@@ -7,7 +7,7 @@ from cachier import cachier
 from shapely import geometry
 from abc import ABC, abstractmethod
 
-from ampelmatch import cache_dir
+from ampelmatch.cache import cache_dir
 from ampelmatch.data.positional_uncertainty import BaseUncertainty
 from ampelmatch.data.config import Survey, PositionalGridSurveyConfig
 

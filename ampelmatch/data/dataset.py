@@ -3,7 +3,7 @@ import skysurvey
 from cachier import cachier
 import itertools
 
-from ampelmatch import cache_dir
+from ampelmatch.cache import cache_dir
 from ampelmatch.data.config import DatasetConfig
 from ampelmatch.data.positional_dataset import PositionalDataset
 from ampelmatch.data.transients import TransientGenerator
