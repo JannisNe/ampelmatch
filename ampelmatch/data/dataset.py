@@ -26,12 +26,12 @@ class DatasetGenerator:
 
     def __next__(self):
         transient, survey = next(self.iter_configs)
-        logger.info(f"Generating dataset for {survey.name} and {transient.name}")
         data = self.realize_data(survey, transient)
-        dset = PositionalDataset(survey, transient, data)
+        dset = PositionalDataset(survey=survey, targets=transient, data=data)
         return dset
 
     @staticmethod
     @cachier(cache_dir=cache_dir)
     def realize_data(survey: skysurvey.Survey, targets: skysurvey.Target):
+        logger.info(f"Generating dataset")
         return PositionalDataset.from_targets_and_survey(targets, survey).data
