@@ -50,6 +50,8 @@ class TransientConfig(BaseModel):
     name: str
     draw: int
     zmax: float
+    tstart: str
+    tstop: str
 
 
 class DatasetConfig(BaseModel):

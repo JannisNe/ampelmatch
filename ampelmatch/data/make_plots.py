@@ -53,7 +53,9 @@ transient_config = [
     {
         "name": "SNIa",
         "draw": 10_000,
-        "zmax": 1
+        "zmax": 1,
+        "tstart": "2020-01-01",
+        "tstop": "2021-03-15"
     }
 ]
 dataset_config = {
