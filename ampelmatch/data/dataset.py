@@ -1,6 +1,6 @@
 import logging
 import skysurvey
-import diskcache
+from cachier import cachier
 import itertools
 
 from ampelmatch import cache_dir
@@ -11,7 +11,6 @@ from ampelmatch.data.surveys import SurveyGenerator
 
 
 logger = logging.getLogger(__name__)
-cache = diskcache.Cache(cache_dir)
 
 
 class DatasetGenerator:
@@ -33,6 +32,6 @@ class DatasetGenerator:
         return dset
 
     @staticmethod
-    @cache.memoize()
+    @cachier(cache_dir=cache_dir)
     def realize_data(survey: skysurvey.Survey, targets: skysurvey.Target):
         return PositionalDataset.from_targets_and_survey(targets, survey).data

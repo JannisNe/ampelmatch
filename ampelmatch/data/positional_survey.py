@@ -3,7 +3,7 @@ import skysurvey
 import numpy as np
 import pandas as pd
 from astropy.time import Time
-import diskcache
+from cachier import cachier
 from shapely import geometry
 from abc import ABC, abstractmethod
 
@@ -13,9 +13,6 @@ from ampelmatch.data.config import Survey, PositionalGridSurveyConfig
 
 
 logger = logging.getLogger(__name__)
-
-
-cache = diskcache.Cache(cache_dir)
 
 
 class ObservationRealize(ABC):
@@ -52,7 +49,7 @@ class PositionalGridSurvey(skysurvey.GridSurvey, ObservationRealize):
         return cls.from_pointings(data, fields=config.fields, uncertainty=uncertainty, footprint=footprint)
 
     @classmethod
-    @cache.memoize()
+    @cachier(cache_dir=cache_dir)
     def realize_observations(cls, config: PositionalGridSurveyConfig):
         logger.info(f"generating {config.name} observations")
         data = {

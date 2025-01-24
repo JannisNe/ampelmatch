@@ -1,13 +1,12 @@
 import logging
 import skysurvey
-import diskcache
+from cachier import cachier, config as cachier_config
 
 from ampelmatch import cache_dir
 from ampelmatch.data.config import Transient
 
 
 logger = logging.getLogger(__name__)
-cache = diskcache.Cache(cache_dir)
 
 
 class TransientGenerator:
@@ -20,7 +19,7 @@ class TransientGenerator:
         self.iter_config = iter(configs)
 
     @staticmethod
-    @cache.memoize()
+    @cachier(cache_dir=cache_dir)
     def realize_transient_data(config):
         logger.debug(cachier_config._default_hash_func([config], dict()))
         transient = TransientGenerator.transient_classes[config.transient_type]()
