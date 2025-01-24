@@ -3,7 +3,6 @@ import cartopy.crs as ccrs
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.collections import PolyCollection
-import itertools
 from pathlib import Path
 
 from ampelmatch.data.config import DatasetConfig
@@ -18,10 +17,19 @@ class Plotter:
         self.datasets = DatasetGenerator(config)
         self.config = config
         self.dir = Path(config.name)
+        self.batch_size = len(self.config.surveys)
+
+    def batched(self):
+        dsets = []
+        for d in self.datasets:
+            dsets.append(d)
+            if len(dsets) == self.batch_size:
+                yield dsets
+                dsets = []
 
     def make_plots(self):
         n_surveys = len(self.config.surveys)
-        for i, dsets in enumerate(itertools.batched(self.datasets, n_surveys)):
+        for i, dsets in enumerate(self.batched()):
             logger.info(f"Generating plots for dataset {i}")
             n_det = [d.get_ndetection() for d in dsets]
             fig, ax = self.sky_plot(dsets, n_det)
