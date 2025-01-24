@@ -21,6 +21,7 @@ class TransientGenerator:
     @staticmethod
     @cachier(cache_dir=cache_dir, hash_func=model_hash)
     def realize_transient_data(config):
+        logger.info(f"Generating {config}")
         transient = TransientGenerator.transient_classes[config.transient_type]()
         transient.draw(
             tstart=config.tstart,
