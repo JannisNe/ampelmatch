@@ -16,7 +16,7 @@ class SurveyGenerator:
     def __init__(self, configs: list[BasePositionalSurveyConfig]):
         self.configs = configs
         self.iter_config = iter(configs)
-        self.cache = diskcache.Cache("ampelmatch_test_surveys")
+        self.cache = diskcache.Cache()
 
     def __iter__(self):
         logger.info("generating test surveys")
