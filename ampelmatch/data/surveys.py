@@ -23,4 +23,4 @@ class SurveyGenerator:
     def __next__(self):
         config = next(self.iter_config)
         logger.debug(f"generating survey {config}")
-        return self.survey_dict[config.type].from_config(config)
+        return self.survey_dict[config.survey_type].from_config(config)
