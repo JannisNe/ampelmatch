@@ -3,7 +3,9 @@ import cartopy.crs as ccrs
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.collections import PolyCollection
+from matplotlib.colors import to_rgba
 from pathlib import Path
+from astropy.time import Time
 
 from ampelmatch.data.config import DatasetConfig
 from ampelmatch.data.dataset import DatasetGenerator
@@ -51,11 +53,34 @@ class Plotter:
     def lightcurve_plot(dsets, i):
         fig, (ax1, ax2) = plt.subplots(nrows=2)
         for il, l in enumerate(dsets):
-            l.show_target_lightcurve(index=i, ax=ax1, label=f"Survey {il}")
-        ax1.legend()
-        for il, l in enumerate(dsets):
             lc = l.get_target_lightcurve(index=i)
+            zp = 25
+            coef = 10 ** (-(lc["zp"] - zp) / 2.5)
+            lc["flux_zp"] = lc["flux"] * coef
+            lc["fluxerr_zp"] = lc["fluxerr"] * coef
+            bands = np.unique(lc["band"])
+            c = [f"C{il}"] * len(bands)
+            l.targets.show_lightcurve(bands, ax=ax1, fig=fig, index=i,
+                                      format_time=True, t0_format="mjd",
+                                      zp=zp, colors=c,
+                                      zorder=2)
+            for iband, (band_, color_) in enumerate(zip(bands, c)):
+                if color_ is None:
+                    ecolor = to_rgba("0.4", 0.2)
+                else:
+                    ecolor = to_rgba(color_, 0.2)
+
+                obs_band = lc[lc["band"] == band_]
+                times = Time(obs_band["time"], format="mjd").datetime
+                ax1.scatter(times, obs_band["flux_zp"], color=color_, zorder=4,
+                            label=f"Survey {il}" if iband == 0 else None)
+                ax1.errorbar(times, obs_band["flux_zp"],
+                             yerr=obs_band["fluxerr_zp"],
+                             ls="None", marker="None", ecolor=ecolor,
+                             zorder=3)
+
             ax2.scatter(lc["ra"], lc["dec"], label=f"Survey {il}")
+        ax1.legend()
         ax2.legend()
         ax2.set_aspect("equal")
 
