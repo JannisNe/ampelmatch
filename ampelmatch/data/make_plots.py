@@ -24,7 +24,7 @@ survey_params = [
         'bands': ['ztfr'],
         "size": 100,
         "uncertainty": {
-            "type": "GaussianUncertainty",
+            "uncertainty_type": "GaussianUncertainty",
             "sigma_arcsec": 1
         },
     },
@@ -41,14 +41,14 @@ survey_params = [
         'bands': ['atlaso'],
         'size': 100,
         "uncertainty": {
-            "type": "GaussianUncertainty",
+            "uncertainty_type": "GaussianUncertainty",
             "sigma_arcsec": 3
         }
     }
 ]
 transient_config = [
     {
-        "name": "SNIa",
+        "transient_type": "SNIa",
         "draw": 10_000,
         "zmax": 1,
         "tstart": "2020-01-01",
