@@ -19,13 +19,13 @@ class DatasetGenerator:
         self.config = config
         self.surveys = SurveyGenerator(config.surveys)
         self.transients = TransientGenerator(config.transients)
-        self.iter_configs = itertools.product(self.surveys, self.transients)
+        self.iter_configs = itertools.product(self.transients, self.surveys)
 
     def __iter__(self):
         return self
 
     def __next__(self):
-        survey, transient = next(self.iter_configs)
+        transient, survey = next(self.iter_configs)
         logger.info(f"Generating dataset for {survey.name} and {transient.name}")
         data = self.realize_data(survey, transient)
         dset = PositionalDataset(survey, transient, data)
