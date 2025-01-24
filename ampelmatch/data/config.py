@@ -1,6 +1,6 @@
-import ampelmatch
+from typing import Literal, Annotated, Union
 import logging
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator, Field
 
 
 logger = logging.getLogger(__name__)
@@ -24,6 +24,7 @@ class BasePositionalSurveyConfig(BaseModel):
     """
     Configuration class for surveys
     """
+    survey_type: str
     name: str
     gain: float
     zp: float
@@ -39,8 +40,12 @@ class PositionalGridSurveyConfig(BasePositionalSurveyConfig):
     """
     Configuration class for grid surveys
     """
+    survey_type: Literal["PositionalGridSurvey"]
     fields: dict
     fov: float
+
+
+Survey = Annotated[Union[PositionalGridSurveyConfig], Field(..., discriminator="survey_type")]
 
 
 class TransientConfig(BaseModel):
@@ -59,5 +64,5 @@ class DatasetConfig(BaseModel):
     Configuration class for ampelmatch
     """
     name: str
-    surveys: list[BasePositionalSurveyConfig]
+    surveys: list[Survey]
     transients: list[TransientConfig]

@@ -1,6 +1,6 @@
 import logging
 
-from ampelmatch.data.config import BasePositionalSurveyConfig
+from ampelmatch.data.config import Survey
 from ampelmatch.data.positional_survey import PositionalGridSurvey
 
 
@@ -12,7 +12,7 @@ class SurveyGenerator:
     survey_classes = [PositionalGridSurvey]
     survey_dict = {cls.__name__: cls for cls in survey_classes}
 
-    def __init__(self, configs: list[BasePositionalSurveyConfig]):
+    def __init__(self, configs: list[Survey]):
         self.configs = configs
         self.iter_config = iter(configs)
 

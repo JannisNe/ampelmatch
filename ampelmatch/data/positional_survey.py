@@ -9,7 +9,7 @@ from abc import ABC, abstractmethod
 
 from ampelmatch import cache_dir
 from ampelmatch.data.positional_uncertainty import BaseUncertainty
-from ampelmatch.data.config import PositionalGridSurveyConfig, BasePositionalSurveyConfig
+from ampelmatch.data.config import Survey, PositionalGridSurveyConfig
 
 
 logger = logging.getLogger(__name__)
@@ -22,12 +22,12 @@ class ObservationRealize(ABC):
 
     @classmethod
     @abstractmethod
-    def from_config(cls, config: BasePositionalSurveyConfig):
+    def from_config(cls, config: Survey):
         ...
 
     @classmethod
     @abstractmethod
-    def realize_observations(cls, config: BasePositionalSurveyConfig):
+    def realize_observations(cls, config: Survey):
         ...
 
 

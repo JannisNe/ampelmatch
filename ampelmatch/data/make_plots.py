@@ -1,9 +1,4 @@
 import logging
-import cartopy.crs as ccrs
-import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.collections import PolyCollection
-
 from ampelmatch.data.config import DatasetConfig
 from ampelmatch.data.plotter import Plotter
 
@@ -18,6 +13,7 @@ fields = {
 survey_params = [
     {
         "name": "survey1",
+        "survey_type": "PositionalGridSurvey",
         "fields": fields,
         'fov': 10,
         'gain': 1,
@@ -34,6 +30,7 @@ survey_params = [
     },
     {
         "name": "survey2",
+        "survey_type": "PositionalGridSurvey",
         "fields": {k: {'ra': v['ra'] + 0.1, 'dec': v['dec'] - 0.2} for k, v in fields.items()},
         'fov': 5,
         'gain': 1,
@@ -66,7 +63,7 @@ dataset_config = {
 
 
 if __name__ == '__main__':
-    logging.getLogger("ampelmatch").setLevel("INFO")
+    logging.getLogger("ampelmatch").setLevel("DEBUG")
     logging.getLogger("ampelmatch").info("Generating test data")
     c = DatasetConfig.model_validate(dataset_config)
     Plotter(c).make_plots()
