@@ -1,6 +1,6 @@
 from typing import Literal, Annotated, Union
 import logging
-from pydantic import BaseModel, field_validator, Field
+from pydantic import BaseModel, Field
 
 
 logger = logging.getLogger(__name__)
