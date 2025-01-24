@@ -1,6 +1,6 @@
 import logging
 import skysurvey
-from cachier import cachier, config as cachier_config
+from cachier import cachier
 
 from ampelmatch.cache import cache_dir, model_hash
 from ampelmatch.data.config import Transient
@@ -21,7 +21,6 @@ class TransientGenerator:
     @staticmethod
     @cachier(cache_dir=cache_dir, hash_func=model_hash)
     def realize_transient_data(config):
-        logger.debug(cachier_config._default_hash_func([config], dict()))
         transient = TransientGenerator.transient_classes[config.transient_type]()
         transient.draw(
             tstart=config.tstart,
@@ -39,5 +38,5 @@ class TransientGenerator:
     def __next__(self):
         config = next(self.iter_config)
         transient = self.transient_classes[config.transient_type]()
-        transient.set_data(self.realize_transient_data(config, cachier__verbose=True))
+        transient.set_data(self.realize_transient_data(config))
         return transient
