@@ -33,7 +33,7 @@ class TransientGenerator:
         return transient.data
 
     def __iter__(self):
-        logger.debug("Generating test transients")
+        logger.info("Making test transients")
         return self
 
     def __next__(self):

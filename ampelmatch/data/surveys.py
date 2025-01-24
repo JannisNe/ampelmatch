@@ -17,10 +17,10 @@ class SurveyGenerator:
         self.iter_config = iter(configs)
 
     def __iter__(self):
-        logger.info("generating test surveys")
+        logger.info("Making test surveys")
         return self
 
     def __next__(self):
         config = next(self.iter_config)
-        logger.debug(f"generating survey {config}")
+        logger.debug(f"making survey {config}")
         return self.survey_dict[config.survey_type].from_config(config)
