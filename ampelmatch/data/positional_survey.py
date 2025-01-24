@@ -30,13 +30,13 @@ class ObservationRealize(ABC):
 
 class PositionalGridSurvey(skysurvey.GridSurvey, ObservationRealize):
 
-    def __init__(self, uncertainty: BaseUncertainty, data=None, fields=None):
-        super().__init__(data, fields)
+    def __init__(self, uncertainty: BaseUncertainty, data=None, fields=None, footprint=None, **kwargs):
+        super().__init__(data=data, fields=fields, footprint=footprint, **kwargs)
         self.uncertainty = uncertainty
 
     @classmethod
     def from_pointings(cls, data, fields_or_coords=None, footprint=None, uncertainty: BaseUncertainty = None, **kwargs):
-        _survey = super(cls, cls).from_pointings(data, fields_or_coords, footprint, **kwargs)
+        _survey = skysurvey.GridSurvey.from_pointings(data, fields_or_coords, footprint, **kwargs)
         _survey.uncertainty = uncertainty
         return _survey
 
@@ -46,7 +46,7 @@ class PositionalGridSurvey(skysurvey.GridSurvey, ObservationRealize):
         uncertainty = BaseUncertainty.from_dict(config.uncertainty.model_dump())
         _one_degree_vertices = np.asarray([[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5]])
         footprint = geometry.Polygon(_one_degree_vertices * config.fov)
-        return cls.from_pointings(data, fields=config.fields, uncertainty=uncertainty, footprint=footprint)
+        return cls.from_pointings(data=data, fields_or_coords=config.fields, uncertainty=uncertainty, footprint=footprint)
 
     @classmethod
     @cachier(cache_dir=cache_dir, hash_func=model_hash)
