@@ -7,6 +7,7 @@ import diskcache
 from shapely import geometry
 from abc import ABC, abstractmethod
 
+from ampelmatch import cache_dir
 from ampelmatch.data.positional_uncertainty import BaseUncertainty
 from ampelmatch.data.config import PositionalGridSurveyConfig, BasePositionalSurveyConfig
 
@@ -14,7 +15,7 @@ from ampelmatch.data.config import PositionalGridSurveyConfig, BasePositionalSur
 logger = logging.getLogger(__name__)
 
 
-cache = diskcache.Cache()
+cache = diskcache.Cache(cache_dir)
 
 
 class ObservationRealize(ABC):
@@ -35,7 +36,6 @@ class PositionalGridSurvey(skysurvey.GridSurvey, ObservationRealize):
     def __init__(self, uncertainty: BaseUncertainty, data=None, fields=None):
         super().__init__(data, fields)
         self.uncertainty = uncertainty
-        self.cache = diskcache.Cache()
 
     @classmethod
     def from_pointings(cls, data, fields_or_coords=None, footprint=None, uncertainty: BaseUncertainty = None, **kwargs):

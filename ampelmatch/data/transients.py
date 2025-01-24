@@ -2,11 +2,12 @@ import logging
 import skysurvey
 import diskcache
 
+from ampelmatch import cache_dir
 from ampelmatch.data.config import TransientConfig
 
 
 logger = logging.getLogger(__name__)
-cache = diskcache.Cache()
+cache = diskcache.Cache(cache_dir)
 
 
 class TransientGenerator:

@@ -3,6 +3,7 @@ import skysurvey
 import diskcache
 import itertools
 
+from ampelmatch import cache_dir
 from ampelmatch.data.config import DatasetConfig
 from ampelmatch.data.positional_dataset import PositionalDataset
 from ampelmatch.data.transients import TransientGenerator
@@ -10,7 +11,7 @@ from ampelmatch.data.surveys import SurveyGenerator
 
 
 logger = logging.getLogger(__name__)
-cache = diskcache.Cache()
+cache = diskcache.Cache(cache_dir)
 
 
 class DatasetGenerator:
