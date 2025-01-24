@@ -30,18 +30,20 @@ class Plotter:
                 yield dsets
                 dsets = []
 
-    def make_plots(self):
+    def make_plots(self, skyplot=True, n_lightcurves=10):
         for i, dsets in enumerate(self.batched()):
             logger.info(f"Generating plots for dataset {i}")
             n_det = [d.get_ndetection() for d in dsets]
-            fig, ax = self.sky_plot(dsets, n_det)
-            fn = self.dir / f"sky_coverage_{i}.pdf"
-            fig.savefig(fn)
-            logger.info(f"Saved sky coverage plot to {fn}")
-            plt.close()
+
+            if skyplot:
+                fig, ax = self.sky_plot(dsets, n_det)
+                fn = self.dir / f"sky_coverage_{i}.pdf"
+                fig.savefig(fn)
+                logger.info(f"Saved sky coverage plot to {fn}")
+                plt.close()
 
             indices = list(set.intersection(*[set(n.index) for n in n_det]))
-            for j in np.random.choice(indices, 10):
+            for j in np.random.choice(indices, n_lightcurves):
                 logger.info(f"Plotting target {j}")
                 fig, axs = self.lightcurve_plot(dsets, j)
                 fn = self.dir / f"lightcurve_{i}_{j}.pdf"
@@ -109,7 +111,7 @@ class Plotter:
             det = targets.data.loc[det_ids]
             ax.scatter(det["ra"], det["dec"], transform=t, color=f"C{dddi}", s=1)
 
-        # ax.autoscale()
+        ax.autoscale()
         ax.set_global()
         ax.legend()
         ax.gridlines()
