@@ -7,7 +7,7 @@ from cachier import cachier
 from shapely import geometry
 from abc import ABC, abstractmethod
 
-from ampelmatch.cache import cache_dir
+from ampelmatch.cache import cache_dir, model_hash
 from ampelmatch.data.positional_uncertainty import BaseUncertainty
 from ampelmatch.data.config import Survey, PositionalGridSurveyConfig
 
@@ -49,7 +49,7 @@ class PositionalGridSurvey(skysurvey.GridSurvey, ObservationRealize):
         return cls.from_pointings(data, fields=config.fields, uncertainty=uncertainty, footprint=footprint)
 
     @classmethod
-    @cachier(cache_dir=cache_dir)
+    @cachier(cache_dir=cache_dir, hash_func=model_hash)
     def realize_observations(cls, config: PositionalGridSurveyConfig):
         logger.info(f"generating {config.name} observations")
         data = {
