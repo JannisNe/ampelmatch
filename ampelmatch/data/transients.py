@@ -11,7 +11,7 @@ cache = diskcache.Cache()
 
 class TransientGenerator:
     transient_classes = {
-        "SNeIa": skysurvey.SNeIa
+        "SNIa": skysurvey.SNeIa
     }
 
     def __init__(self, configs: list[TransientConfig]):
