@@ -24,21 +24,24 @@ class Plotter:
 
     def batched(self):
         dsets = []
+        configs = []
         for d, c in self.datasets:
             dsets.append(d)
+            configs.append(c)
             if len(dsets) == self.batch_size:
-                yield dsets
+                yield dsets, configs
                 dsets = []
 
     def make_data_plots(self, skyplot=True, n_lightcurves=10):
-        for i, dsets in enumerate(self.batched()):
+        for i, (dsets, configs) in enumerate(self.batched()):
             logger.info(f"Generating plots for dataset {i}")
             n_det = [d.get_ndetection() for d in dsets]
 
             if skyplot:
                 surveys = [d.survey for d in dsets]
                 targets = [d.targets for d in dsets]
-                fig, ax = self.sky_plot(surveys, targets, n_det)
+                target_skyarea = configs[0][0].skyarea
+                fig, ax = self.sky_plot(surveys, targets, n_det, target_skyarea=target_skyarea)
                 fn = self.dir / f"sky_coverage_{i}.pdf"
                 fig.savefig(fn)
                 logger.info(f"Saved sky coverage plot to {fn}")
@@ -91,20 +94,26 @@ class Plotter:
         return fig, (ax1, ax2)
 
     @staticmethod
-    def sky_plot(surveys, targets, n_det):
+    def sky_plot(surveys, targets, n_det=None, target_skyarea=None):
         logger.info(f"Plotting sky coverage")
         origin = 180
         t = ccrs.PlateCarree(central_longitude=origin)
         fig = plt.figure()
         ax = fig.add_axes((0.15, 0.22, 0.75, 0.75), projection=ccrs.Mollweide())
+
         for dddi, (s, targets) in enumerate(zip(surveys, targets)):
             geodf = s.fields.copy()
             Plotter.show_geometry(ax, geodf["geometry"], origin=origin, transform=t,
                                   ec=f"C{dddi}", label=f"Survey {dddi}", alpha=0.5, fc="none")
-            det_ids = n_det[dddi].index
-            if targets.data is not None:
+
+            if (targets.data is not None) and (n_det is not None):
+                det_ids = n_det[dddi].index
                 det = targets.data.loc[det_ids]
                 ax.scatter(det["ra"], det["dec"], transform=t, color=f"C{dddi}", s=1)
+
+        if target_skyarea is not None:
+            Plotter.show_geometry(ax, target_skyarea, origin=origin, transform=t,
+                                  ec="k", label=f"Target area", alpha=0.5, fc="none")
 
         ax.autoscale()
         ax.set_global()
