@@ -1,5 +1,5 @@
 {
-  "name": "test",
+  "name": "test_small",
   "surveys": [
     {
       "name": "survey1",
@@ -8,12 +8,12 @@
         "0": {"ra": 150.11916667, "dec": 2.20583333},
         "1": {"ra": 120.11916667, "dec": -2.60583333}
       },
-      "fov": 10,
+      "fov": 1,
       "gain": 1,
       "zp": 30,
       "skynoise_mean": 150,
       "time_min": "2020-03-01",
-      "time_max": "2021-02-28",
+      "time_max": "2020-04-01",
       "bands": ["ztfr"],
       "size": 100,
       "uncertainty": {
@@ -25,15 +25,15 @@
       "name": "survey2",
       "survey_type": "PositionalGridSurvey",
       "fields": {
-        "0": {"ra": 150.21916667, "dec": 2.00583333},
-        "1": {"ra": 120.21916667, "dec": -2.80583333}
+        "0": {"ra": 150.11916667, "dec": 2.20583333},
+        "1": {"ra": 120.11916667, "dec": -2.60583333}
       },
-      "fov": 5,
+      "fov": 1,
       "gain": 1,
       "zp": 28,
       "skynoise_mean": 200,
       "time_min": "2020-03-01",
-      "time_max": "2021-02-28",
+      "time_max": "2020-04-01",
       "bands": ["atlaso"],
       "size": 100,
       "uncertainty": {
