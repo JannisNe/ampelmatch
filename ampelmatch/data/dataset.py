@@ -47,6 +47,10 @@ class DatasetGenerator:
             for t, s in itertools.product(self.config.transients, self.config.surveys)
         ]
 
+    @property
+    def n_transients(self):
+        return len(self.config.transients)
+
     def write(self):
         for d, fname in zip(self, self.filenames):
             d.data.to_csv(fname)
