@@ -36,7 +36,7 @@ class Plotter:
             n_det = [d.get_ndetection() for d in dsets]
 
             if skyplot:
-                surveys = [d.surveys for d in dsets]
+                surveys = [d.survey for d in dsets]
                 targets = [d.targets for d in dsets]
                 fig, ax = self.sky_plot(surveys, targets, n_det)
                 fn = self.dir / f"sky_coverage_{i}.pdf"
@@ -99,14 +99,8 @@ class Plotter:
         ax = fig.add_axes((0.15, 0.22, 0.75, 0.75), projection=ccrs.Mollweide())
         for dddi, (s, targets) in enumerate(zip(surveys, targets)):
             geodf = s.fields.copy()
-            xy = np.stack(geodf["geometry"].apply(lambda x: ((np.asarray(x.exterior.xy)).T)).values)
-            # correct edge effects
-            flag_egde = np.any(np.diff(xy, axis=1) > 300, axis=1)[:, 0]
-            xy[flag_egde] = ((xy[flag_egde] + origin) % 360 - origin)
-            geodf["xy"] = list(xy)
-            ax.add_collection(PolyCollection(
-                geodf["xy"], transform=t, ec=f"C{dddi}", label=f"Survey {dddi}", alpha=0.5, fc="none"
-            ))
+            Plotter.show_geometry(ax, geodf["geometry"], origin=origin, transform=t,
+                                  ec=f"C{dddi}", label=f"Survey {dddi}", alpha=0.5, fc="none")
             det_ids = n_det[dddi].index
             if targets.data is not None:
                 det = targets.data.loc[det_ids]
@@ -117,3 +111,12 @@ class Plotter:
         ax.legend()
         ax.gridlines()
         return fig, ax
+
+    @staticmethod
+    def show_geometry(ax, geometry, origin=180, transform=None, **kwargs):
+        xy = np.stack(geometry.apply(lambda x: ((np.asarray(x.exterior.xy)).T)).values)
+        # correct edge effects
+        flag_egde = np.any(np.diff(xy, axis=1) > 300, axis=1)[:, 0]
+        xy[flag_egde] = ((xy[flag_egde] + origin) % 360 - origin)
+        xy = list(xy)
+        ax.add_collection(PolyCollection(xy, transform=transform, **kwargs))
