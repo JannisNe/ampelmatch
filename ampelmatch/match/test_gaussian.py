@@ -3,6 +3,7 @@ from pathlib import Path
 
 from ampelmatch.data.config import DatasetConfig
 from ampelmatch.data.dataset import DatasetGenerator
+from ampelmatch.data.plotter import Plotter
 from ampelmatch.match.gaussian import StreamMatch
 
 
@@ -16,6 +17,7 @@ if __name__ == '__main__':
     dsets = DatasetGenerator(dset_config)
     if any([not f.exists() for f in dsets.filenames]):
         DatasetGenerator(dset_config).write()
+        Plotter(dset_config).make_plots(n_lightcurves=10)
 
     batched_fns = []
     for i in range(1, dsets.n_transients + 1):
@@ -24,7 +26,7 @@ if __name__ == '__main__':
     for i, fns in enumerate(batched_fns):
         logger.info(f"Matching batch {i}")
         match_config = {
-            "name": f"test_small_{i}",
+            "name": f"{dset_config.name}_{i}",
             "plot": True,
             "nside": 128,
             "primary_data": {
