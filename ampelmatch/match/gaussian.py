@@ -113,17 +113,17 @@ class StreamMatch(BaseModel):
                     bayes_factors[imd] = 2 / ssum[m] * np.exp(-psi_arcsec[m] ** 2 / (2*ssum[m]))
 
                     if self.plot:
-                        norm = colors.Normalize(vmin=min(bayes_factors), vmax=max(bayes_factors))
-                        sm = cm.ScalarMappable(norm=norm, cmap=self.cmaps[imd])
                         orig_sources = md.loc[dps][m]
                         orig_sources["marker"] = "s"
                         orig_sources["bf"] = bayes_factors[imd]
+                        norm = colors.Normalize(vmin=min(orig_sources.bf), vmax=max(orig_sources.bf))
+                        sm = cm.ScalarMappable(norm=norm, cmap=self.cmaps[imd])
 
                         for ii, i in enumerate(orig_sources.index.unique()):
                             ax.scatter(
                                 orig_sources.loc[i, "ra"], orig_sources.loc[i, "dec"],
                                 c=sm.to_rgba(orig_sources.loc[i, "bf"]),
-                                label=f"match {imd}", marker=self.markers[ii]
+                                label=f"match {ii}", marker=self.markers[ii]
                             )
                         plt.colorbar(sm, cax=axs[imd + 1], label=f"secondary source {imd}")
 
