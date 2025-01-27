@@ -66,4 +66,4 @@ if __name__ == '__main__':
     logging.getLogger("ampelmatch").setLevel("INFO")
     logging.getLogger("ampelmatch").info("Generating test data")
     c = DatasetConfig.model_validate(dataset_config)
-    Plotter(c).make_plots(n_lightcurves=0)
+    Plotter(c).make_data_plots(n_lightcurves=0)

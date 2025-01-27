@@ -17,7 +17,7 @@ if __name__ == '__main__':
     dsets = DatasetGenerator(dset_config)
     if any([not f.exists() for f in dsets.filenames]):
         DatasetGenerator(dset_config).write()
-        Plotter(dset_config).make_plots(n_lightcurves=10)
+        Plotter(dset_config).make_data_plots(n_lightcurves=10)
 
     batched_fns = []
     for i in range(1, dsets.n_transients + 1):

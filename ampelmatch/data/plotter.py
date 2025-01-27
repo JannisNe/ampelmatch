@@ -30,7 +30,7 @@ class Plotter:
                 yield dsets
                 dsets = []
 
-    def make_plots(self, skyplot=True, n_lightcurves=10):
+    def make_data_plots(self, skyplot=True, n_lightcurves=10):
         for i, dsets in enumerate(self.batched()):
             logger.info(f"Generating plots for dataset {i}")
             n_det = [d.get_ndetection() for d in dsets]
