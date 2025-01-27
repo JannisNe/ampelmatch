@@ -27,6 +27,7 @@ class TransientGenerator:
             tstart=config.tstart,
             tstop=config.tstop,
             zmax=config.zmax,
+            skyarea=config.skyarea,
             inplace=True
         )
         logger.info(f"Generated {len(transient.data)} {config.transient_type} transients")

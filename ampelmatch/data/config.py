@@ -1,7 +1,8 @@
 from typing import Literal, Annotated, Union
 import logging
-from pydantic import BaseModel, Field
-
+import shapely
+import json
+from pydantic import BaseModel, Field, field_validator, ConfigDict, field_serializer
 
 logger = logging.getLogger(__name__)
 
@@ -61,6 +62,22 @@ class TransientConfig(BaseModel):
     zmax: float
     tstart: str
     tstop: str
+    skyarea: shapely.Geometry | dict | str | None = None
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    @field_validator("skyarea",)
+    def check_skyarea(cls, v, values):
+        if v is None:
+            return
+        if isinstance(v, dict):
+            return shapely.from_geojson(json.dumps(v))
+        if isinstance(v, str):
+            return shapely.from_geojson(v)
+        return v
+
+    @field_serializer("skyarea")
+    def serialize_skyarea(self, v):
+        return shapely.to_geojson(v)
 
 
 class SNIaConfig(TransientConfig):
