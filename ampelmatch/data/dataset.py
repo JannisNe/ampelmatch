@@ -56,6 +56,7 @@ class DatasetGenerator:
         return len(self.config.surveys)
 
     def write(self):
-        for d, fname in zip(self, self.filenames):
+        for (d, confs), fname in zip(self, self.filenames):
+            fname.parent.mkdir(exist_ok=True, parents=True)
             d.data.to_csv(fname)
             logger.info(f"saved {fname}")
