@@ -20,7 +20,7 @@ class Plotter:
         self.config = config
         self.dir = Path(config.name)
         self.dir.mkdir(exist_ok=True)
-        self.batch_size = self.datasets.n_transients
+        self.batch_size = self.datasets.n_surveys
 
     def batched(self):
         dsets = []
