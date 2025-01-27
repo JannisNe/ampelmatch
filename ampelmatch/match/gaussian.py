@@ -1,6 +1,4 @@
 import logging
-from dataclasses import Field
-
 import numpy as np
 import pandas as pd
 import healpy as hp
@@ -10,6 +8,7 @@ from pydantic import BaseModel, computed_field, ConfigDict, model_validator
 from typing import Any, Dict
 from astropy.coordinates import angular_separation
 import matplotlib.pyplot as plt
+from matplotlib import cm, colors
 
 
 logger = logging.getLogger(__name__)
@@ -25,6 +24,8 @@ class StreamMatch(BaseModel):
     disc_radius_arcsec: float = 100
     plot: bool = False
     plot_dir: Path | None = None
+    markers: list[str] = ["o", "s", "x", "+", "d", "v", "^", "<", ">", "1", "2", "3", "4", "8", "p", "P", "*", "h", "H", "X"]
+    cmaps: list[str] = ["viridis", "plasma", "inferno", "magma", "cividis", "twilight", "twilight_shifted", "turbo", "nipy_spectral"]
 
     @model_validator(mode='before')
     def post_update(cls, values: Dict[str, Any]) -> Dict[str, Any]:
@@ -84,7 +85,10 @@ class StreamMatch(BaseModel):
             logger.debug(f"primary hp index: {primary_hp_index}")
 
             if self.plot:
-                fig, ax = plt.subplots()
+                n_secondary = len(match_data)
+                gs = {"width_ratios": [1] + n_secondary * [0.1]}
+                fig, axs = plt.subplots(ncols=n_secondary + 1, gridspec_kw=gs)
+                ax = axs[0]
                 ax.scatter(i_primary_data["ra"], i_primary_data["dec"], c="r", label="primary")
 
             # get secondary datapoints within disc
@@ -109,7 +113,19 @@ class StreamMatch(BaseModel):
                     bayes_factors[imd] = 2 / ssum[m] * np.exp(-psi_arcsec[m] ** 2 / (2*ssum[m]))
 
                     if self.plot:
-                        ax.scatter(md.loc[dps, "ra"][m], md.loc[dps, "dec"][m], c=bayes_factors[imd])
+                        norm = colors.Normalize(vmin=min(bayes_factors), vmax=max(bayes_factors))
+                        sm = cm.ScalarMappable(norm=norm, cmap=self.cmaps[imd])
+                        orig_sources = md.loc[dps][m]
+                        orig_sources["marker"] = "s"
+                        orig_sources["bf"] = bayes_factors[imd]
+
+                        for ii, i in enumerate(orig_sources.index.unique()):
+                            ax.scatter(
+                                orig_sources.loc[i, "ra"], orig_sources.loc[i, "dec"],
+                                c=sm.to_rgba(orig_sources.loc[i, "bf"]),
+                                label=f"match {imd}", marker=self.markers[ii]
+                            )
+                        plt.colorbar(sm, cax=axs[imd + 1], label=f"secondary source {imd}")
 
             if self.plot:
                 ax.set_aspect("equal")
