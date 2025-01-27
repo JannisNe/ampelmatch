@@ -1,0 +1,54 @@
+{
+  "name": "test",
+  "surveys": [
+    {
+      "name": "survey1",
+      "survey_type": "PositionalGridSurvey",
+      "fields": {
+        "0": {"ra": 150.11916667, "dec": 2.20583333},
+        "1": {"ra": 120.11916667, "dec": -2.60583333}
+      },
+      "fov": 10,
+      "gain": 1,
+      "zp": 30,
+      "skynoise_mean": 150,
+      "time_min": "2020-03-01",
+      "time_max": "2021-02-28",
+      "bands": ["ztfr"],
+      "size": 100,
+      "uncertainty": {
+        "uncertainty_type": "GaussianUncertainty",
+        "sigma_arcsec": 1
+      }
+    },
+    {
+      "name": "survey2",
+      "survey_type": "PositionalGridSurvey",
+      "fields": {
+        "0": {"ra": 150.21916667, "dec": 2.00583333},
+        "1": {"ra": 120.21916667, "dec": -2.80583333}
+      },
+      "fov": 5,
+      "gain": 1,
+      "zp": 28,
+      "skynoise_mean": 200,
+      "time_min": "2020-03-01",
+      "time_max": "2021-02-28",
+      "bands": ["atlaso"],
+      "size": 100,
+      "uncertainty": {
+        "uncertainty_type": "GaussianUncertainty",
+        "sigma_arcsec": 3
+      }
+    }
+  ],
+  "transients": [
+    {
+      "transient_type": "SNIa",
+      "draw": 10000,
+      "zmax": 1,
+      "tstart": "2020-01-01",
+      "tstop": "2021-03-15"
+    }
+  ]
+}
