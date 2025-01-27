@@ -39,9 +39,15 @@ class DatasetGenerator:
         logger.info(f"Generating dataset")
         return PositionalDataset.from_targets_and_survey(targets, survey).data
 
-    def write(self):
+    @property
+    def filenames(self):
         directory = Path(self.config.name)
-        for d, (t, s) in self:
-            fname = f"{s.name}_{t.transient_type}.csv"
-            d.data.to_csv(directory / fname)
-            logger.info(f"saved {t.transient_type} observed by {s.name} to {directory / fname}")
+        return [
+            directory / f"{s.name}_{t.transient_type}.csv"
+            for t, s in itertools.product(self.config.transients, self.config.surveys)
+        ]
+
+    def write(self):
+        for d, fname in zip(self, self.filenames):
+            d.data.to_csv(fname)
+            logger.info(f"saved {fname}")
