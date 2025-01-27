@@ -40,7 +40,7 @@ class DatasetGenerator:
         return PositionalDataset.from_targets_and_survey(targets, survey).data
 
     @property
-    def filenames(self):
+    def filenames(self) -> list[Path]:
         directory = Path(self.config.name)
         return [
             directory / f"{s.name}_{t.transient_type}.csv"
@@ -50,6 +50,10 @@ class DatasetGenerator:
     @property
     def n_transients(self):
         return len(self.config.transients)
+
+    @property
+    def n_surveys(self):
+        return len(self.config.surveys)
 
     def write(self):
         for d, fname in zip(self, self.filenames):
