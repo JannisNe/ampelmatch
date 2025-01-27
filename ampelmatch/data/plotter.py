@@ -24,7 +24,7 @@ class Plotter:
 
     def batched(self):
         dsets = []
-        for d in self.datasets:
+        for d, c in self.datasets:
             dsets.append(d)
             if len(dsets) == self.batch_size:
                 yield dsets

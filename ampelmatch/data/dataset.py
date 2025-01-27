@@ -1,6 +1,7 @@
 import logging
 import skysurvey
 from cachier import cachier
+from pathlib import Path
 import itertools
 
 from ampelmatch.cache import cache_dir, model_hash
@@ -30,10 +31,17 @@ class DatasetGenerator:
         configs = next(self.iter_configs)
         data = self.realize_data(survey, transient, *configs)
         dset = PositionalDataset(survey=survey, targets=transient, data=data)
-        return dset
+        return dset, configs
 
     @staticmethod
     @cachier(cache_dir=cache_dir, hash_func=model_hash)
     def realize_data(survey: skysurvey.Survey, targets: skysurvey.Target, transient_config: Transient, survey_config: Survey):
         logger.info(f"Generating dataset")
         return PositionalDataset.from_targets_and_survey(targets, survey).data
+
+    def write(self):
+        directory = Path(self.config.name)
+        for d, (t, s) in self:
+            fname = f"{s.name}_{t.transient_type}.csv"
+            d.data.to_csv(directory / fname)
+            logger.info(f"saved {t.transient_type} observed by {s.name} to {directory / fname}")
