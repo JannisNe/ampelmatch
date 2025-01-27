@@ -36,11 +36,13 @@ class StreamMatch(BaseModel):
     @computed_field
     def _primary_data(self) -> pd.DataFrame:
         logger.info(f"Loading primary data")
+        logger.debug(f"primary data config: {self.primary_data}")
         return pd.read_csv(**self.primary_data)
 
     @computed_field
     def _match_data(self) -> list[pd.DataFrame]:
         logger.info("Loading match data")
+        logger.debug(f"match data config: {self.match_data}")
         return [pd.read_csv(**d) for d in self.match_data]
 
     def get_pixels_disc(self, ra, dec):
@@ -136,4 +138,5 @@ class StreamMatch(BaseModel):
                 fname = self.plot_dir / f"{primary_source_id}.pdf"
                 fname.parent.mkdir(exist_ok=True, parents=True)
                 fig.savefig(fname)
+                logger.debug(f"saved plot to {fname}")
                 plt.close()
