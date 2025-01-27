@@ -36,7 +36,9 @@ class Plotter:
             n_det = [d.get_ndetection() for d in dsets]
 
             if skyplot:
-                fig, ax = self.sky_plot(dsets, n_det)
+                surveys = [d.surveys for d in dsets]
+                targets = [d.targets for d in dsets]
+                fig, ax = self.sky_plot(surveys, targets, n_det)
                 fn = self.dir / f"sky_coverage_{i}.pdf"
                 fig.savefig(fn)
                 logger.info(f"Saved sky coverage plot to {fn}")
@@ -89,14 +91,13 @@ class Plotter:
         return fig, (ax1, ax2)
 
     @staticmethod
-    def sky_plot(dsets, n_det):
+    def sky_plot(surveys, targets, n_det):
         logger.info(f"Plotting sky coverage")
         origin = 180
         t = ccrs.PlateCarree(central_longitude=origin)
         fig = plt.figure()
         ax = fig.add_axes((0.15, 0.22, 0.75, 0.75), projection=ccrs.Mollweide())
-        for dddi, ddd in enumerate(dsets):
-            s = ddd.survey
+        for dddi, (s, targets) in enumerate(zip(surveys, targets)):
             geodf = s.fields.copy()
             xy = np.stack(geodf["geometry"].apply(lambda x: ((np.asarray(x.exterior.xy)).T)).values)
             # correct edge effects
@@ -106,10 +107,10 @@ class Plotter:
             ax.add_collection(PolyCollection(
                 geodf["xy"], transform=t, ec=f"C{dddi}", label=f"Survey {dddi}", alpha=0.5, fc="none"
             ))
-            targets = ddd.targets
             det_ids = n_det[dddi].index
-            det = targets.data.loc[det_ids]
-            ax.scatter(det["ra"], det["dec"], transform=t, color=f"C{dddi}", s=1)
+            if targets.data is not None:
+                det = targets.data.loc[det_ids]
+                ax.scatter(det["ra"], det["dec"], transform=t, color=f"C{dddi}", s=1)
 
         ax.autoscale()
         ax.set_global()
