@@ -1,21 +1,36 @@
 import logging
+from dataclasses import Field
+
 import numpy as np
 import pandas as pd
 import healpy as hp
 from tqdm import tqdm
-from pydantic import BaseModel, computed_field, ConfigDict
+from pathlib import Path
+from pydantic import BaseModel, computed_field, ConfigDict, model_validator
+from typing import Any, Dict
 from astropy.coordinates import angular_separation
+import matplotlib.pyplot as plt
 
 
 logger = logging.getLogger(__name__)
 
 
 class StreamMatch(BaseModel):
+    name: str
     nside: int
-    disc_radius_arcsec: float = 100
     primary_data: dict
     match_data: list[dict]
     model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    disc_radius_arcsec: float = 100
+    plot: bool = False
+    plot_dir: Path | None = None
+
+    @model_validator(mode='before')
+    def post_update(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+        if values.get('plot_dir') is None:
+            values['plot_dir'] = Path(values["name"]) / "plots"
+        return values
 
     @computed_field
     def _primary_data(self) -> pd.DataFrame:
@@ -68,6 +83,10 @@ class StreamMatch(BaseModel):
             primary_hp_index = _get_pixels(primary_mean_ra, primary_mean_dec)
             logger.debug(f"primary hp index: {primary_hp_index}")
 
+            if self.plot:
+                fig, ax = plt.subplots()
+                ax.scatter(i_primary_data["ra"], i_primary_data["dec"], c="r", label="primary")
+
             # get secondary datapoints within disc
             bayes_factors = {}
             for imd, (md, mh) in enumerate(zip(match_data, match_data_hp_maps)):
@@ -88,3 +107,17 @@ class StreamMatch(BaseModel):
                 logger.debug(f"{n_within_disc} within disc")
                 if n_within_disc:
                     bayes_factors[imd] = 2 / ssum[m] * np.exp(-psi_arcsec[m] ** 2 / (2*ssum[m]))
+
+                    if self.plot:
+                        ax.scatter(md.loc[dps, "ra"][m], md.loc[dps, "dec"][m], c=bayes_factors[imd])
+
+            if self.plot:
+                ax.set_aspect("equal")
+                ax.set_xlabel("ra")
+                ax.set_ylabel("dec")
+                ax.legend()
+                ax.legend()
+                fname = self.plot_dir / f"{primary_source_id}.pdf"
+                fname.parent.mkdir(exist_ok=True, parents=True)
+                fig.savefig(fname)
+                plt.close()

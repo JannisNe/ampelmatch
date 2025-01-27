@@ -24,6 +24,8 @@ if __name__ == '__main__':
     for i, fns in enumerate(batched_fns):
         logger.info(f"Matching batch {i}")
         match_config = {
+            "name": f"test_small_{i}",
+            "plot": True,
             "nside": 128,
             "primary_data": {
                 "filepath_or_buffer": fns[0],
