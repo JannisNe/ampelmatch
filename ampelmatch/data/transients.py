@@ -24,6 +24,7 @@ class TransientGenerator:
         logger.info(f"Generating {config}")
         transient = TransientGenerator.transient_classes[config.transient_type]()
         transient.draw(
+            size=config.size,
             tstart=config.tstart,
             tstop=config.tstop,
             zmax=config.zmax,
