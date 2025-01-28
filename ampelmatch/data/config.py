@@ -77,7 +77,7 @@ class TransientConfig(BaseModel):
 
     @field_serializer("skyarea")
     def serialize_skyarea(self, v):
-        return shapely.to_geojson(v)
+        return json.loads(shapely.to_geojson(v))
 
 
 class SNIaConfig(TransientConfig):
