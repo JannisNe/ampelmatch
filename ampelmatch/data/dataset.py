@@ -33,6 +33,9 @@ class DatasetGenerator:
         dset = PositionalDataset(survey=survey, targets=transient, data=data)
         return dset, configs
 
+    def get_hash(self):
+        return model_hash([self.config], dict())
+
     @staticmethod
     @cachier(cache_dir=cache_dir, hash_func=model_hash)
     def realize_data(survey: skysurvey.Survey, targets: skysurvey.Target, transient_config: Transient, survey_config: Survey):
@@ -43,7 +46,7 @@ class DatasetGenerator:
     def filenames(self) -> list[Path]:
         directory = Path(self.config.name)
         return [
-            directory / f"{s.name}_{t.transient_type}.csv"
+            directory / self.get_hash() / f"{s.name}_{t.transient_type}.csv"
             for t, s in itertools.product(self.config.transients, self.config.surveys)
         ]
 
