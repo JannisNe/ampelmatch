@@ -3,6 +3,7 @@ import logging
 import shapely
 import json
 from pydantic import BaseModel, Field, field_validator, ConfigDict, field_serializer
+from ampelmatch.cache import model_hash
 
 logger = logging.getLogger(__name__)
 
@@ -97,3 +98,6 @@ class DatasetConfig(BaseModel):
     name: str
     surveys: list[Survey]
     transients: list[Transient]
+
+    def get_hash(self):
+        return model_hash([self], dict())
