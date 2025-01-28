@@ -19,7 +19,7 @@ class Plotter:
     def __init__(self, config: DatasetConfig):
         self.datasets = DatasetGenerator(config)
         self.config = config
-        self.dir = Path(config.name)
+        self.dir = Path(config.name) / config.get_hash()
         self.dir.mkdir(exist_ok=True)
         self.batch_size = self.datasets.n_surveys
 

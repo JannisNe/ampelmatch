@@ -17,12 +17,14 @@ if __name__ == '__main__':
     logging.getLogger("ampelmatch").setLevel("DEBUG")
     dset_config_fname = Path(__file__).parent / "test_sim.json"
     dset_config = DatasetConfig.model_validate_json(dset_config_fname.read_text())
+    h = dset_config.get_hash()
     for t, tc in zip(TransientGenerator(dset_config.transients), dset_config.transients):
         surveys = list(SurveyGenerator(dset_config.surveys))
         targets = [t for _ in surveys]
         fig, ax = Plotter.sky_plot(surveys, targets, target_skyarea=tc.skyarea)
-        fname = Path(f"{tc.transient_type}_sky_coverage.pdf")
+        fname = Path(dset_config.name) / h / f"{tc.transient_type}_sky_coverage.pdf"
         logger.info(f"Saving sky coverage plot to {fname}")
+        fname.parent.mkdir(exist_ok=True, parents=True)
         fig.savefig(fname)
         plt.close()
 
@@ -38,7 +40,7 @@ if __name__ == '__main__':
     for i, fns in enumerate(batched_fns):
         logger.info(f"Matching batch {i}")
         match_config = {
-            "name": f"{dset_config.name}_{i}",
+            "name": f"{dset_config.name}/{h}/{i}",
             "plot": True,
             "nside": 128,
             "primary_data": {
