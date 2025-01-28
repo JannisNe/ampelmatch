@@ -22,13 +22,13 @@ class StreamMatch(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     disc_radius_arcsec: float = 100
-    plot: bool = False
+    plot: bool | int = False
     plot_dir: Path | None = None
     markers: list[str] = ["o", "s", "x", "+", "d", "v", "^", "<", ">", "1", "2", "3", "4", "8", "p", "P", "*", "h", "H", "X"]
     cmaps: list[str] = ["viridis", "plasma", "inferno", "magma", "cividis", "twilight", "twilight_shifted", "turbo", "nipy_spectral"]
 
     @model_validator(mode='before')
-    def post_update(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+    def plots_update(cls, values: Dict[str, Any]) -> Dict[str, Any]:
         if values.get('plot_dir') is None:
             values['plot_dir'] = Path(values["name"]) / "plots"
         return values
@@ -78,6 +78,7 @@ class StreamMatch(BaseModel):
 
         # Perform matching
         logger.info("matching ...")
+        primary_source_bayes_factors = {}
         for primary_source_id in tqdm(primary_data.index.unique(), desc="primary sources"):
             i_primary_data = primary_data.loc[primary_source_id]
             primary_sigma_arcsec = i_primary_data["sigma_arcsec"].median()
@@ -112,22 +113,25 @@ class StreamMatch(BaseModel):
                 n_within_disc = m.sum()
                 logger.debug(f"{n_within_disc} within disc")
                 if n_within_disc:
-                    bayes_factors[imd] = 2 / ssum[m] * np.exp(-psi_arcsec[m] ** 2 / (2*ssum[m]))
+                    arcsec_sq_to_sr = np.radians(1 / 3600) ** 2
+                    bayes_factors[imd] = 2 / ssum[m] * np.exp(-psi_arcsec[m] ** 2 / (2*ssum[m])) / arcsec_sq_to_sr
 
                     if self.plot:
                         orig_sources = md.loc[dps][m]
                         orig_sources["marker"] = "s"
-                        orig_sources["bf"] = bayes_factors[imd]
-                        norm = colors.Normalize(vmin=min(orig_sources.bf), vmax=max(orig_sources.bf))
+                        orig_sources["woe"] = np.log10(bayes_factors[imd])
+                        norm = colors.Normalize(vmin=min(orig_sources.woe), vmax=max(orig_sources.woe))
                         sm = cm.ScalarMappable(norm=norm, cmap=self.cmaps[imd])
 
                         for ii, i in enumerate(orig_sources.index.unique()):
                             ax.scatter(
                                 orig_sources.loc[i, "ra"], orig_sources.loc[i, "dec"],
-                                c=sm.to_rgba(orig_sources.loc[i, "bf"]),
+                                c=sm.to_rgba(orig_sources.loc[i, "woe"]),
                                 label=f"match {ii}", marker=self.markers[ii]
                             )
-                        plt.colorbar(sm, cax=axs[imd + 1], label=f"secondary source {imd}")
+                        plt.colorbar(sm, cax=axs[imd + 1], label=f"WOE {imd}")
+
+            primary_source_bayes_factors[primary_source_id] = bayes_factors
 
             if self.plot:
                 ax.set_aspect("equal")
@@ -140,3 +144,8 @@ class StreamMatch(BaseModel):
                 fig.savefig(fname)
                 logger.debug(f"saved plot to {fname}")
                 plt.close()
+
+                if isinstance(self.plot, int):
+                    self.plot -= 1
+
+        return primary_source_bayes_factors
