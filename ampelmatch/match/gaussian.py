@@ -1,11 +1,12 @@
 import logging
+import abc
 import numpy as np
 import pandas as pd
 import healpy as hp
 from tqdm import tqdm
 from pathlib import Path
-from pydantic import BaseModel, computed_field, ConfigDict, model_validator
-from typing import Any, Dict
+from pydantic import BaseModel, computed_field, ConfigDict, model_validator, Field
+from typing import Any, Dict, Annotated, Union
 from astropy.coordinates import angular_separation
 import matplotlib.pyplot as plt
 from matplotlib import cm, colors
@@ -15,8 +16,9 @@ logger = logging.getLogger(__name__)
 SQARCSEC_TO_SR = np.radians(1 / 3600) ** 2
 
 
-class StreamMatch(BaseModel):
+class BaseStreamMatch(BaseModel, abc.ABC):
     name: str
+    match_type: str
     nside: int
     primary_data: dict
     match_data: list[dict]
@@ -52,6 +54,14 @@ class StreamMatch(BaseModel):
 
     def get_pixel(self, ra, dec):
         return [hp.ang2pix(self.nside, ra, dec, lonlat=True)]
+
+    @abc.abstractmethod
+    def calculate_bayes_factors(
+            self,
+            primary_ra: float, primary_dec: float, primary_data: pd.DataFrame,
+            orig_sources: pd.DataFrame, psi_arcsec: pd.Series
+    ) -> pd.Series:
+        ...
 
     def match(self):
         logger.info("Matching streams")
@@ -101,10 +111,8 @@ class StreamMatch(BaseModel):
                 try:
                     dps = mh.loc[primary_hp_index]
                 except KeyError:
-                    dps = []
+                    continue
                 logger.debug(f"{len(dps)} within first search")
-                sigmas_arcsec = md.loc[dps, "sigma_arcsec"]
-                ssum = primary_sigma_arcsec ** 2 + sigmas_arcsec ** 2
                 psi_rad = angular_separation(*[
                     np.radians(v) for v in
                     [primary_mean_ra, primary_mean_dec, md.loc[dps, "ra"], md.loc[dps, "dec"]]
@@ -113,23 +121,29 @@ class StreamMatch(BaseModel):
                 m = psi_arcsec < self.disc_radius_arcsec
                 n_within_disc = m.sum()
                 logger.debug(f"{n_within_disc} within disc")
-                if n_within_disc:
-                    bayes_factors[imd] = 2 / ssum[m] * np.exp(-psi_arcsec[m] ** 2 / (2*ssum[m])) / SQARCSEC_TO_SR
+                if n_within_disc == 0:
+                    continue
 
-                    if self.plot:
-                        orig_sources = md.loc[dps][m]
-                        orig_sources["marker"] = "s"
-                        orig_sources["woe"] = np.log10(bayes_factors[imd])
-                        norm = colors.Normalize(vmin=min(orig_sources.woe), vmax=max(orig_sources.woe))
-                        sm = cm.ScalarMappable(norm=norm, cmap=self.cmaps[imd])
+                orig_sources = md.loc[dps][m]
+                bayes_factors[imd] = self.calculate_bayes_factors(
+                    primary_mean_ra, primary_mean_dec, i_primary_data,
+                    orig_sources, psi_arcsec[m]
+                )
 
-                        for ii, i in enumerate(orig_sources.index.unique()):
-                            ax.scatter(
-                                orig_sources.loc[i, "ra"], orig_sources.loc[i, "dec"],
-                                c=sm.to_rgba(orig_sources.loc[i, "woe"]),
-                                label=f"match {ii}", marker=self.markers[ii]
-                            )
-                        plt.colorbar(sm, cax=axs[imd + 1], label=f"WOE {imd}")
+                if self.plot:
+
+                    orig_sources["marker"] = "s"
+                    orig_sources["woe"] = np.log10(bayes_factors[imd])
+                    norm = colors.Normalize(vmin=min(orig_sources.woe), vmax=max(orig_sources.woe))
+                    sm = cm.ScalarMappable(norm=norm, cmap=self.cmaps[imd])
+
+                    for ii, i in enumerate(orig_sources.index.unique()):
+                        ax.scatter(
+                            orig_sources.loc[i, "ra"], orig_sources.loc[i, "dec"],
+                            c=sm.to_rgba(orig_sources.loc[i, "woe"]),
+                            label=f"match {ii}", marker=self.markers[ii]
+                        )
+                    plt.colorbar(sm, cax=axs[imd + 1], label=f"WOE {imd}")
 
             primary_source_bayes_factors[primary_source_id] = bayes_factors
 
@@ -149,3 +163,20 @@ class StreamMatch(BaseModel):
                     self.plot -= 1
 
         return primary_source_bayes_factors
+
+
+class GaussianStreamMatch(BaseStreamMatch):
+    match_type: str = "gaussian"
+
+    def calculate_bayes_factors(
+            self,
+            primary_ra: float, primary_dec: float, primary_data: pd.DataFrame,
+            orig_sources: pd.DataFrame, psi_arcsec: pd.Series
+    ) -> pd.Series:
+        sigmas_arcsec = orig_sources["sigma_arcsec"]
+        primary_sigma_arcsec = primary_data["sigma_arcsec"].median()
+        ssum = primary_sigma_arcsec ** 2 + sigmas_arcsec ** 2
+        return 2 / ssum * np.exp(-psi_arcsec ** 2 / (2*ssum)) / SQARCSEC_TO_SR
+
+
+StreamMatch = Annotated[Union[GaussianStreamMatch], Field(..., discriminator="match_type")]
