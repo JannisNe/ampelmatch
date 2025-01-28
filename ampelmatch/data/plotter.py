@@ -6,6 +6,7 @@ from matplotlib.collections import PolyCollection
 from matplotlib.colors import to_rgba
 from pathlib import Path
 from astropy.time import Time
+import geopandas as gpd
 
 from ampelmatch.data.config import DatasetConfig
 from ampelmatch.data.dataset import DatasetGenerator
@@ -112,7 +113,8 @@ class Plotter:
                 ax.scatter(det["ra"], det["dec"], transform=t, color=f"C{dddi}", s=1)
 
         if target_skyarea is not None:
-            Plotter.show_geometry(ax, target_skyarea, origin=origin, transform=t,
+            geometry = gpd.GeoSeries(target_skyarea.geoms)
+            Plotter.show_geometry(ax, geometry, origin=origin, transform=t,
                                   ec="k", label=f"Target area", alpha=0.5, fc="none")
 
         ax.autoscale()
