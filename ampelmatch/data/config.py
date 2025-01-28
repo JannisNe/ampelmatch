@@ -58,10 +58,10 @@ class TransientConfig(BaseModel):
     Configuration class for transients
     """
     transient_type: str
-    draw: int
-    zmax: float
-    tstart: str
-    tstop: str
+    size: int | None = None
+    zmax: float | None = None
+    tstart: str | None = None
+    tstop: str | None = None
     skyarea: shapely.Geometry | dict | str | None = None
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
