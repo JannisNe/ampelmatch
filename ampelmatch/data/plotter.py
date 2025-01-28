@@ -113,7 +113,7 @@ class Plotter:
                 ax.scatter(det["ra"], det["dec"], transform=t, color=f"C{dddi}", s=1)
 
         if target_skyarea is not None:
-            geometry = gpd.GeoSeries(target_skyarea.geoms)
+            geometry = gpd.GeoSeries(target_skyarea.geoms if hasattr(target_skyarea, "geoms") else [target_skyarea])
             Plotter.show_geometry(ax, geometry, origin=origin, transform=t,
                                   ec="k", label=f"Target area", alpha=0.5, fc="none")
 
