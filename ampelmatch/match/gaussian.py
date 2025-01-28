@@ -12,6 +12,7 @@ from matplotlib import cm, colors
 
 
 logger = logging.getLogger(__name__)
+SQARCSEC_TO_SR = np.radians(1 / 3600) ** 2
 
 
 class StreamMatch(BaseModel):
@@ -113,8 +114,7 @@ class StreamMatch(BaseModel):
                 n_within_disc = m.sum()
                 logger.debug(f"{n_within_disc} within disc")
                 if n_within_disc:
-                    arcsec_sq_to_sr = np.radians(1 / 3600) ** 2
-                    bayes_factors[imd] = 2 / ssum[m] * np.exp(-psi_arcsec[m] ** 2 / (2*ssum[m])) / arcsec_sq_to_sr
+                    bayes_factors[imd] = 2 / ssum[m] * np.exp(-psi_arcsec[m] ** 2 / (2*ssum[m])) / SQARCSEC_TO_SR
 
                     if self.plot:
                         orig_sources = md.loc[dps][m]
