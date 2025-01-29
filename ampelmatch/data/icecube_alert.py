@@ -1,8 +1,6 @@
 import logging
-import ipdb
 import functools
 from tqdm import tqdm
-import numpy as np
 import pandas as pd
 import requests
 import tarfile

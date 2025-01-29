@@ -15,7 +15,7 @@ logger = logging.getLogger("ampelmatch.match.test_gaussian")
 
 
 if __name__ == '__main__':
-    logging.getLogger("ampelmatch").setLevel("INFO")
+    logging.getLogger("ampelmatch").setLevel("DEBUG")
     dset_config_fname = Path(__file__).parent / "test_sim.json"
     dset_config = DatasetConfig.model_validate_json(dset_config_fname.read_text())
     h = dset_config.get_hash()
@@ -38,10 +38,7 @@ if __name__ == '__main__':
     for i in range(1, dsets.n_transients + 1):
         batched_fns.append(dsets.filenames[:i*dsets.n_surveys])
 
-    icecube_alerts_fname = Path(__file__).parent / "icecube_alerts.csv"
-    if not icecube_alerts_fname.exists():
-        icecube_alerts = IceCubeAlerts().write_data(icecube_alerts_fname)
-
+    icecube_alert_filenames = IceCubeAlerts().filenames
 
     for i, fns in enumerate(batched_fns):
         logger.info(f"Matching batch {i}")
