@@ -3,3 +3,4 @@
 *.pdf
 *__pycache__/*
 ampelmatch_cache/*
+dataverse_files/*
