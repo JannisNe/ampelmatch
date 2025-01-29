@@ -65,10 +65,9 @@ class IceCubeAlerts:
     @staticmethod
     def get_icecube_alerts(dataverse_id: str) -> Iterator[Path]:
 
-        tar_dir = Path(cache_dir) / dataverse_id
+        tar_dir = Path(cache_dir) / str(dataverse_id)
 
         if not tar_dir.exists():
-            tar_dir.mkdir(exist_ok=True, parents=True)
             cache_file = tar_dir.with_suffix(".tar")
             url = f"https://dataverse.harvard.edu/api/access/datafile/{dataverse_id}"
             with requests.get(url, stream=True) as r:
@@ -76,6 +75,7 @@ class IceCubeAlerts:
                     for chunk in tqdm(r.iter_content(chunk_size=8192)):
                         f.write(chunk)
 
+            tar_dir.mkdir(exist_ok=True, parents=True)
             with tarfile.open(cache_file, "r") as tar:
                 tar.extractall(tar_dir)
 
