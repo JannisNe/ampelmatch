@@ -7,6 +7,7 @@ from ampelmatch.data.dataset import DatasetGenerator
 from ampelmatch.data.plotter import Plotter
 from ampelmatch.data.transients import TransientGenerator
 from ampelmatch.data.surveys import SurveyGenerator
+from ampelmatch.data.icecube_alert import IceCubeAlerts
 from ampelmatch.match.gaussian import StreamMatch
 
 
@@ -36,6 +37,11 @@ if __name__ == '__main__':
     batched_fns = []
     for i in range(1, dsets.n_transients + 1):
         batched_fns.append(dsets.filenames[:i*dsets.n_surveys])
+
+    icecube_alerts_fname = Path(__file__).parent / "icecube_alerts.csv"
+    if not icecube_alerts_fname.exists():
+        icecube_alerts = IceCubeAlerts().write_data(icecube_alerts_fname)
+
 
     for i, fns in enumerate(batched_fns):
         logger.info(f"Matching batch {i}")
