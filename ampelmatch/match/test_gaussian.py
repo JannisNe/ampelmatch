@@ -14,7 +14,7 @@ logger = logging.getLogger("ampelmatch.match.test_gaussian")
 
 
 if __name__ == '__main__':
-    logging.getLogger("ampelmatch").setLevel("DEBUG")
+    logging.getLogger("ampelmatch").setLevel("INFO")
     dset_config_fname = Path(__file__).parent / "test_sim.json"
     dset_config = DatasetConfig.model_validate_json(dset_config_fname.read_text())
     h = dset_config.get_hash()
@@ -41,7 +41,8 @@ if __name__ == '__main__':
         logger.info(f"Matching batch {i}")
         match_config = {
             "name": f"{dset_config.name}/{h}/{i}",
-            "plot": True,
+            "match_type": "gaussian",
+            "plot": 30,
             "nside": 128,
             "primary_data": {
                 "filepath_or_buffer": fns[0],
@@ -56,4 +57,4 @@ if __name__ == '__main__':
             ]
         }
         match = StreamMatch(**match_config)
-        match.match()
+        bayes_factors = match.match()

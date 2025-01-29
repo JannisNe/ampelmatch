@@ -6,7 +6,7 @@ import healpy as hp
 from tqdm import tqdm
 from pathlib import Path
 from pydantic import BaseModel, computed_field, ConfigDict, model_validator, Field
-from typing import Any, Dict, Annotated, Union
+from typing import Any, Dict, Annotated, Union, Literal
 from astropy.coordinates import angular_separation
 import matplotlib.pyplot as plt
 from matplotlib import cm, colors
@@ -166,7 +166,7 @@ class BaseStreamMatch(BaseModel, abc.ABC):
 
 
 class GaussianStreamMatch(BaseStreamMatch):
-    match_type: str = "gaussian"
+    match_type: Literal["gaussian"]
 
     def calculate_bayes_factors(
             self,
