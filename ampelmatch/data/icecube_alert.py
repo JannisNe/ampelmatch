@@ -1,4 +1,6 @@
 import logging
+import ipdb
+import functools
 from tqdm import tqdm
 import numpy as np
 import pandas as pd
@@ -34,28 +36,29 @@ class IceCubeAlerts:
 
     def __init__(self):
         self.data = None
-        self.load_data()
 
     def load_data(self):
-        files = []
-        for year, dataverse_id in self.DATAVERSE_IDS.items():
-            logger.info(f"Downloading IceCube alerts for {year}")
-            files.extend(list(self.get_icecube_alerts(dataverse_id)))
-
-        _, h = hp.read_map(files[0], h=True)
-        dtypes = [
-            (k, type(v)) for k, v in dict(h).items()
-        ] + [("map", object), ("filename", str)]
-        data = np.array(np.empty((len(files), len(dtypes))), dtype=dtypes)
-        for i, f in enumerate(files):
-            logger.info(f"Reading {f}")
+        _, h = hp.read_map(self.filenames[0], h=True)
+        data = []
+        for i, f in tqdm(enumerate(self.filenames), desc="Reading IceCube alerts", total=len(self.filenames)):
+            logger.debug(f"Reading {f}")
             s, h = hp.read_map(f, h=True)
             i_data = dict(h)
-            i_data["map"] = s
-            i_data["filename"] = f
-            data[i] = tuple(i_data.values())
+            i_data["MAP"] = s
+            i_data["FILENAME"] = f
+            if "GCN_URL" not in i_data:
+                i_data["GCN_URL"] = ""
+            data.append(pd.Series(i_data))
 
         self.data = pd.DataFrame(data)
+
+    @functools.cached_property
+    def filenames(self):
+        files = []
+        for year, dataverse_id in self.DATAVERSE_IDS.items():
+            logger.info(f"Getting IceCube alerts for {year}")
+            files.extend(list(self.get_icecube_alerts(dataverse_id)))
+        return files
 
     def write_data(self, filename: str | Path):
         filename = Path(filename)
@@ -68,6 +71,7 @@ class IceCubeAlerts:
         tar_dir = Path(cache_dir) / str(dataverse_id)
 
         if not tar_dir.exists():
+            logger.info("fetching IceCube alerts")
             cache_file = tar_dir.with_suffix(".tar")
             url = f"https://dataverse.harvard.edu/api/access/datafile/{dataverse_id}"
             with requests.get(url, stream=True) as r:
