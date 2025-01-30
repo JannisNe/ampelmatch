@@ -8,7 +8,7 @@ from ampelmatch.data.plotter import Plotter
 from ampelmatch.data.transients import TransientGenerator
 from ampelmatch.data.surveys import SurveyGenerator
 from ampelmatch.data.icecube_alert import IceCubeAlerts
-from ampelmatch.match.gaussian import StreamMatch
+from ampelmatch.match.match import StreamMatch
 
 
 logger = logging.getLogger("ampelmatch.match.test_gaussian")
@@ -38,7 +38,11 @@ if __name__ == '__main__':
     for i in range(1, dsets.n_transients + 1):
         batched_fns.append(dsets.filenames[:i*dsets.n_surveys])
 
-    icecube_alert_filenames = IceCubeAlerts().filenames
+    icecube_alerts = IceCubeAlerts()
+    icecube_alert_filename = Path("icecube_alerts.csv")
+    if not icecube_alert_filename.is_file():
+        icecube_alerts.load_data()
+        icecube_alerts.write_data(icecube_alert_filename)
 
     for i, fns in enumerate(batched_fns):
         logger.info(f"Matching batch {i}")
