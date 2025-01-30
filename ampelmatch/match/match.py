@@ -3,6 +3,7 @@ import abc
 import numpy as np
 import pandas as pd
 import healpy as hp
+import functools
 from tqdm import tqdm
 from pathlib import Path
 from pydantic import BaseModel, computed_field, ConfigDict, model_validator, Field
@@ -24,7 +25,7 @@ class BaseStreamMatch(BaseModel, abc.ABC):
     match_data: list[dict]
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    disc_radius_arcsec: float = 100
+    disc_radius_arcsec: float | None = 100
     plot: bool | int = False
     plot_dir: Path | None = None
     markers: list[str] = ["o", "s", "x", "+", "d", "v", "^", "<", ">", "1", "2", "3", "4", "8", "p", "P", "*", "h", "H", "X"]
@@ -63,10 +64,7 @@ class BaseStreamMatch(BaseModel, abc.ABC):
     ) -> pd.Series:
         ...
 
-    def match(self):
-        logger.info("Matching streams")
-        primary_data = self._primary_data
-        match_data = self._match_data
+    def disc_selection(self, match_data, ra, dec):
         match_data_hp_maps = []
         logger.info("calculating healpix maps")
         for m in match_data:
@@ -79,43 +77,55 @@ class BaseStreamMatch(BaseModel, abc.ABC):
 
         if (r := hp.pixelfunc.nside2resol(self.nside, arcmin=True)) < self.disc_radius_arcsec / 60:
             logger.debug("healpix resolution is better than disc radius, using query_disc")
-            _get_pixels = self.get_pixels_disc
+            primary_hp_index = self.get_pixels_disc(ra, dec)
         else:
             logger.debug(
                 f"healpix resolution {r} arcmin is worse than "
                 f"disc radius {self.disc_radius_arcsec} arcsec, using only primary pixel"
             )
-            _get_pixels = self.get_pixel
+            primary_hp_index = self.get_pixel(ra, dec)
+
+        selected_data = []
+        for m, mh in zip(match_data, match_data_hp_maps):
+            try:
+                hpi = mh.loc[primary_hp_index]
+            except KeyError:
+                continue
+            logger.debug(f"selected {len(hpi)} sources")
+            selected_data.append(m.loc[hpi])
+        return selected_data
+
+    def match(self):
+        logger.info("Matching streams")
+        primary_data = self._primary_data
+        match_data = self._match_data
+        n_secondary = len(match_data)
 
         # Perform matching
         logger.info("matching ...")
         primary_source_bayes_factors = {}
         for primary_source_id in tqdm(primary_data.index.unique(), desc="primary sources"):
             i_primary_data = primary_data.loc[primary_source_id]
-            primary_sigma_arcsec = i_primary_data["sigma_arcsec"].median()
             primary_mean_ra = i_primary_data["ra"].median()
             primary_mean_dec = i_primary_data["dec"].median()
-            primary_hp_index = _get_pixels(primary_mean_ra, primary_mean_dec)
-            logger.debug(f"primary hp index: {primary_hp_index}")
 
             if self.plot:
-                n_secondary = len(match_data)
                 gs = {"width_ratios": [1] + n_secondary * [0.1]}
                 fig, axs = plt.subplots(ncols=n_secondary + 1, gridspec_kw=gs)
                 ax = axs[0]
                 ax.scatter(i_primary_data["ra"], i_primary_data["dec"], c="r", label="primary")
 
+            if self.disc_radius_arcsec is not None:
+                selected_match_data = self.disc_selection(match_data, primary_mean_ra, primary_mean_dec)
+            else:
+                selected_match_data = match_data
+
             # get secondary datapoints within disc
             bayes_factors = {}
-            for imd, (md, mh) in enumerate(zip(match_data, match_data_hp_maps)):
-                try:
-                    dps = mh.loc[primary_hp_index]
-                except KeyError:
-                    continue
-                logger.debug(f"{len(dps)} within first search")
+            for imd, md in enumerate(selected_match_data):
                 psi_rad = angular_separation(*[
                     np.radians(v) for v in
-                    [primary_mean_ra, primary_mean_dec, md.loc[dps, "ra"], md.loc[dps, "dec"]]
+                    [primary_mean_ra, primary_mean_dec, md["ra"], md["dec"]]
                 ])
                 psi_arcsec = np.degrees(psi_rad) * 3600
                 m = psi_arcsec < self.disc_radius_arcsec
@@ -124,7 +134,7 @@ class BaseStreamMatch(BaseModel, abc.ABC):
                 if n_within_disc == 0:
                     continue
 
-                orig_sources = md.loc[dps][m]
+                orig_sources = md[m]
                 bayes_factors[imd] = self.calculate_bayes_factors(
                     primary_mean_ra, primary_mean_dec, i_primary_data,
                     orig_sources, psi_arcsec[m]
@@ -132,8 +142,8 @@ class BaseStreamMatch(BaseModel, abc.ABC):
 
                 if self.plot:
 
-                    orig_sources["marker"] = "s"
-                    orig_sources["woe"] = np.log10(bayes_factors[imd])
+                    orig_sources.loc[:, "marker"] = "s"
+                    orig_sources.loc[:, "woe"] = np.log10(bayes_factors[imd])
                     norm = colors.Normalize(vmin=min(orig_sources.woe), vmax=max(orig_sources.woe))
                     sm = cm.ScalarMappable(norm=norm, cmap=self.cmaps[imd])
 
@@ -177,6 +187,18 @@ class GaussianStreamMatch(BaseStreamMatch):
         primary_sigma_arcsec = primary_data["sigma_arcsec"].median()
         ssum = primary_sigma_arcsec ** 2 + sigmas_arcsec ** 2
         return 2 / ssum * np.exp(-psi_arcsec ** 2 / (2*ssum)) / SQARCSEC_TO_SR
+
+
+class HealpixMatch(BaseStreamMatch):
+    match_type: Literal["healpix"]
+
+    def calculate_bayes_factors(
+            self,
+            primary_ra: float, primary_dec: float, primary_data: pd.DataFrame,
+            orig_sources: pd.DataFrame, psi_arcsec: pd.Series
+    ) -> pd.Series:
+        sigmas_arcsec = orig_sources["sigma_arcsec"]
+        primary_sigma_arcsec = primary_data["sigma_arcsec"].median()
 
 
 StreamMatch = Annotated[Union[GaussianStreamMatch], Field(..., discriminator="match_type")]
