@@ -42,13 +42,14 @@ class IceCubeAlerts:
             logger.debug(f"Reading {f}")
             s, h = hp.read_map(f, h=True)
             i_data = dict(h)
-            i_data["MAP"] = s
             i_data["FILENAME"] = f
             if "GCN_URL" not in i_data:
                 i_data["GCN_URL"] = ""
             data.append(pd.Series(i_data))
 
-        self.data = pd.DataFrame(data)
+        data = pd.DataFrame(data)
+        data.columns = [c.lower() for c in data.columns]
+        self.data = data
 
     @functools.cached_property
     def filenames(self):
