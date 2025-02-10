@@ -14,6 +14,7 @@ from matplotlib import cm, colors
 
 
 logger = logging.getLogger(__name__)
+SQDG_TO_SR = np.radians(1) ** 2
 SQARCSEC_TO_SR = np.radians(1 / 3600) ** 2
 
 
@@ -104,15 +105,21 @@ class BaseStreamMatch(BaseModel, abc.ABC):
         # Perform matching
         logger.info("matching ...")
         primary_source_bayes_factors = {}
+
+        if self.plot:
+            plot_ids = np.random.choice(primary_data.index.unique(), self.plot, replace=False)
+        else:
+            plot_ids = []
+
         for primary_source_id in tqdm(primary_data.index.unique(), desc="primary sources"):
             i_primary_data = primary_data.loc[primary_source_id]
             primary_mean_ra = i_primary_data["ra"].median()
             primary_mean_dec = i_primary_data["dec"].median()
 
-            if self.plot:
+            if primary_source_id in plot_ids:
                 gs = {"width_ratios": [1] + n_secondary * [0.1]}
                 fig, axs = plt.subplots(ncols=n_secondary + 1, gridspec_kw=gs)
-                ax = axs[0]
+                ax = axs[0] if n_secondary > 0 else axs
                 ax.scatter(i_primary_data["ra"], i_primary_data["dec"], c="r", label="primary")
 
             if self.disc_radius_arcsec is not None:
@@ -125,7 +132,7 @@ class BaseStreamMatch(BaseModel, abc.ABC):
             for imd, md in enumerate(selected_match_data):
                 bayes_factors[imd] = self.calculate_bayes_factors(primary_mean_ra, primary_mean_dec, i_primary_data, md)
 
-                if self.plot:
+                if primary_source_id in plot_ids:
 
                     orig_sources = md.loc[bayes_factors[imd].index]
                     orig_sources.loc[:, "marker"] = "s"
@@ -154,7 +161,7 @@ class BaseStreamMatch(BaseModel, abc.ABC):
 
             primary_source_bayes_factors[primary_source_id] = bayes_factors
 
-            if self.plot:
+            if primary_source_id in plot_ids:
                 ax.set_aspect("equal")
                 ax.set_xlabel("ra")
                 ax.set_ylabel("dec")
@@ -213,7 +220,7 @@ class IceCubeContourStreamMatch(BaseStreamMatch):
             llh_level = 64.2
         ctr_pix = np.where(s < llh_level)[0]
         ctr_area = len(ctr_pix) * hp.nside2pixarea(h["NSIDE"])
-        logger.debug(f"{filename}: {ctr_area} sr")
+        logger.debug(f"{filename}: {ctr_area / SQDG_TO_SR} sqd")
         return ctr_pix, ctr_area
 
     def calculate_bayes_factors(
@@ -228,6 +235,7 @@ class IceCubeContourStreamMatch(BaseStreamMatch):
         for i, r in orig_sources.iterrows():
             indices, area = self.contour_pixels_indices(r["filename"])
             if pix in indices:
+                logger.debug(f"source within contour {i}")
                 bayes_factors.loc[i] = 0.9 * (4 * np.pi) / area
             else:
                 bayes_factors.loc[i] = 0.1 / (1 - area / (4 * np.pi))
