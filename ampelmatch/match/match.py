@@ -66,7 +66,7 @@ class BaseStreamMatch(BaseModel, abc.ABC):
 
     def disc_selection(self, match_data, ra, dec):
         match_data_hp_maps = []
-        logger.info("calculating healpix maps")
+        logger.debug("calculating healpix maps for disc selection")
         for m in match_data:
             match_data_hp_maps.append(
                 pd.Series(
@@ -133,11 +133,22 @@ class BaseStreamMatch(BaseModel, abc.ABC):
                     norm = colors.Normalize(vmin=min(orig_sources.woe), vmax=max(orig_sources.woe))
                     sm = cm.ScalarMappable(norm=norm, cmap=self.cmaps[imd])
 
-                    for ii, i in enumerate(orig_sources.index.unique()):
+                    if "source_index" in orig_sources.columns:
+                        for si in orig_sources.source_index.unique():
+                            m = orig_sources.source_index == si
+                            ax.scatter(
+                                orig_sources.loc[m, "ra"],
+                                orig_sources.loc[m, "dec"],
+                                c=sm.to_rgba(orig_sources.loc[m, "woe"]),
+                                label=f"source {si}",
+                                marker=self.markers[si % len(self.markers)]
+                            )
+                    else:
                         ax.scatter(
-                            orig_sources.loc[i, "ra"], orig_sources.loc[i, "dec"],
-                            c=sm.to_rgba(orig_sources.loc[i, "woe"]),
-                            label=f"match {ii}", marker=self.markers[ii % len(self.markers)]
+                            orig_sources.ra,
+                            orig_sources.dec,
+                            c=sm.to_rgba(orig_sources.woe),
+                            marker=self.markers[0]
                         )
                     plt.colorbar(sm, cax=axs[imd + 1], label=f"WOE {imd}")
 
@@ -171,7 +182,7 @@ class GaussianStreamMatch(BaseStreamMatch):
     ) -> pd.Series:
         psi_rad = angular_separation(*[
             np.radians(v) for v in
-            [primary_mean_ra, primary_mean_dec, md["ra"], md["dec"]]
+            [primary_ra, primary_dec, orig_sources["ra"], orig_sources["dec"]]
         ])
         psi_arcsec = np.degrees(psi_rad) * 3600
 
@@ -179,7 +190,8 @@ class GaussianStreamMatch(BaseStreamMatch):
             m = psi_arcsec < self.disc_radius_arcsec
             n_within_disc = m.sum()
             logger.debug(f"{n_within_disc} within disc")
-            orig_sources = md[m]
+            orig_sources = orig_sources[m]
+            psi_arcsec = psi_arcsec[m]
 
         sigmas_arcsec = orig_sources["sigma_arcsec"]
         primary_sigma_arcsec = primary_data["sigma_arcsec"].median()

@@ -58,5 +58,6 @@ class DatasetGenerator:
     def write(self):
         for (d, confs), fname in zip(self, self.filenames):
             fname.parent.mkdir(exist_ok=True, parents=True)
+            d.data.index.names = ["source_index", "detection_index"]
             d.data.to_csv(fname)
             logger.info(f"saved {fname}")
