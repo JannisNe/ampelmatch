@@ -58,10 +58,9 @@ if __name__ == '__main__':
             "match_data": [
                 {
                     "filepath_or_buffer": fn,
-                    "index_col": 0
                 }
                 for fn in fns[1:]
             ]
         }
-        match = StreamMatch(**match_config)
+        match = StreamMatch.validate_python(match_config)
         bayes_factors = match.match()
