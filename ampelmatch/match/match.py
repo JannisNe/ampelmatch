@@ -1,12 +1,12 @@
+import functools
 import logging
 import abc
 import numpy as np
 import pandas as pd
 import healpy as hp
-import functools
 from tqdm import tqdm
 from pathlib import Path
-from pydantic import BaseModel, computed_field, ConfigDict, model_validator, Field
+from pydantic import BaseModel, computed_field, ConfigDict, model_validator, Field, PositiveInt, TypeAdapter
 from typing import Any, Dict, Annotated, Union, Literal
 from astropy.coordinates import angular_separation
 import matplotlib.pyplot as plt
@@ -26,7 +26,7 @@ class BaseStreamMatch(BaseModel, abc.ABC):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     disc_radius_arcsec: float | None = 100
-    plot: bool | int = False
+    plot: bool | PositiveInt = False
     plot_dir: Path | None = None
     markers: list[str] = ["o", "s", "x", "+", "d", "v", "^", "<", ">", "1", "2", "3", "4", "8", "p", "P", "*", "h", "H", "X"]
     cmaps: list[str] = ["viridis", "plasma", "inferno", "magma", "cividis", "twilight", "twilight_shifted", "turbo", "nipy_spectral"]
@@ -60,7 +60,7 @@ class BaseStreamMatch(BaseModel, abc.ABC):
     def calculate_bayes_factors(
             self,
             primary_ra: float, primary_dec: float, primary_data: pd.DataFrame,
-            orig_sources: pd.DataFrame, psi_arcsec: pd.Series
+            orig_sources: pd.DataFrame
     ) -> pd.Series:
         ...
 
@@ -123,25 +123,11 @@ class BaseStreamMatch(BaseModel, abc.ABC):
             # get secondary datapoints within disc
             bayes_factors = {}
             for imd, md in enumerate(selected_match_data):
-                psi_rad = angular_separation(*[
-                    np.radians(v) for v in
-                    [primary_mean_ra, primary_mean_dec, md["ra"], md["dec"]]
-                ])
-                psi_arcsec = np.degrees(psi_rad) * 3600
-                m = psi_arcsec < self.disc_radius_arcsec
-                n_within_disc = m.sum()
-                logger.debug(f"{n_within_disc} within disc")
-                if n_within_disc == 0:
-                    continue
-
-                orig_sources = md[m]
-                bayes_factors[imd] = self.calculate_bayes_factors(
-                    primary_mean_ra, primary_mean_dec, i_primary_data,
-                    orig_sources, psi_arcsec[m]
-                )
+                bayes_factors[imd] = self.calculate_bayes_factors(primary_mean_ra, primary_mean_dec, i_primary_data, md)
 
                 if self.plot:
 
+                    orig_sources = md.loc[bayes_factors[imd].index]
                     orig_sources.loc[:, "marker"] = "s"
                     orig_sources.loc[:, "woe"] = np.log10(bayes_factors[imd])
                     norm = colors.Normalize(vmin=min(orig_sources.woe), vmax=max(orig_sources.woe))
@@ -151,7 +137,7 @@ class BaseStreamMatch(BaseModel, abc.ABC):
                         ax.scatter(
                             orig_sources.loc[i, "ra"], orig_sources.loc[i, "dec"],
                             c=sm.to_rgba(orig_sources.loc[i, "woe"]),
-                            label=f"match {ii}", marker=self.markers[ii]
+                            label=f"match {ii}", marker=self.markers[ii % len(self.markers)]
                         )
                     plt.colorbar(sm, cax=axs[imd + 1], label=f"WOE {imd}")
 
@@ -181,24 +167,59 @@ class GaussianStreamMatch(BaseStreamMatch):
     def calculate_bayes_factors(
             self,
             primary_ra: float, primary_dec: float, primary_data: pd.DataFrame,
-            orig_sources: pd.DataFrame, psi_arcsec: pd.Series
+            orig_sources: pd.DataFrame
     ) -> pd.Series:
+        psi_rad = angular_separation(*[
+            np.radians(v) for v in
+            [primary_mean_ra, primary_mean_dec, md["ra"], md["dec"]]
+        ])
+        psi_arcsec = np.degrees(psi_rad) * 3600
+
+        if self.disc_radius_arcsec is not None:
+            m = psi_arcsec < self.disc_radius_arcsec
+            n_within_disc = m.sum()
+            logger.debug(f"{n_within_disc} within disc")
+            orig_sources = md[m]
+
         sigmas_arcsec = orig_sources["sigma_arcsec"]
         primary_sigma_arcsec = primary_data["sigma_arcsec"].median()
         ssum = primary_sigma_arcsec ** 2 + sigmas_arcsec ** 2
         return 2 / ssum * np.exp(-psi_arcsec ** 2 / (2*ssum)) / SQARCSEC_TO_SR
 
 
-class HealpixMatch(BaseStreamMatch):
-    match_type: Literal["healpix"]
+class IceCubeContourStreamMatch(BaseStreamMatch):
+    match_type: Literal["icecube_contour"]
+
+    @staticmethod
+    @functools.cache
+    def contour_pixels_indices(filename):
+        s, h = hp.read_map(filename, h=True)
+        h = dict(h)
+        if "Wilks theorem" in h["COMMENTS"]:
+            llh_level = 4.605170185988092
+        else:
+            llh_level = 64.2
+        ctr_pix = np.where(s < llh_level)[0]
+        ctr_area = len(ctr_pix) * hp.nside2pixarea(h["NSIDE"])
+        logger.debug(f"{filename}: {ctr_area} sr")
+        return ctr_pix, ctr_area
 
     def calculate_bayes_factors(
             self,
             primary_ra: float, primary_dec: float, primary_data: pd.DataFrame,
-            orig_sources: pd.DataFrame, psi_arcsec: pd.Series
+            orig_sources: pd.DataFrame
     ) -> pd.Series:
-        sigmas_arcsec = orig_sources["sigma_arcsec"]
         primary_sigma_arcsec = primary_data["sigma_arcsec"].median()
+        filenames = orig_sources["filename"]
+        pix = hp.ang2pix(self.nside, primary_ra, primary_dec, lonlat=True)
+        bayes_factors = pd.Series(0.0, index=orig_sources.index)
+        for i, r in orig_sources.iterrows():
+            indices, area = self.contour_pixels_indices(r["filename"])
+            if pix in indices:
+                bayes_factors.loc[i] = 0.9 * (4 * np.pi) / area
+            else:
+                bayes_factors.loc[i] = 0.1 / (1 - area / (4 * np.pi))
+        return bayes_factors
 
 
-StreamMatch = Annotated[Union[GaussianStreamMatch], Field(..., discriminator="match_type")]
+StreamMatch = TypeAdapter(Union[GaussianStreamMatch, IceCubeContourStreamMatch])
