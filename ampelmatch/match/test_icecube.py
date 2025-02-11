@@ -1,5 +1,4 @@
 import logging
-import ipdb
 from pathlib import Path
 import matplotlib.pyplot as plt
 
@@ -65,4 +64,3 @@ if __name__ == '__main__':
         }
         match = StreamMatch.validate_python(match_config)
         bayes_factors = match.match()
-        ipdb.set_trace()
