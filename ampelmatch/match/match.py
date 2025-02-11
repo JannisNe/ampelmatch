@@ -1,12 +1,9 @@
 import functools
 import logging
 import abc
-
-import ipdb
 import numpy as np
 import pandas as pd
 import healpy as hp
-from pydantic.experimental.pipeline import transform
 from tqdm import tqdm
 from pathlib import Path
 from pydantic import BaseModel, computed_field, ConfigDict, model_validator, PositiveInt, TypeAdapter
@@ -247,12 +244,16 @@ class IceCubeContourStreamMatch(BaseStreamMatch):
             primary_ra: float, primary_dec: float, primary_data: pd.DataFrame,
             orig_sources: pd.DataFrame
     ) -> pd.Series:
-        pix = hp.ang2pix(self.nside, primary_ra, primary_dec, lonlat=True)
         bayes_factors = pd.Series(0.0, index=orig_sources.index)
+        nside = 0
+        pix = None
         for i, r in orig_sources.iterrows():
             indices, area, _ = self.contour_pixels_indices(r["filename"])
+            if r["nside"] != nside:
+                pix = hp.ang2pix(r["nside"], primary_ra, primary_dec, lonlat=True)
+                nside = r["nside"]
             if pix in indices:
-                logger.debug(f"source within contour {i}")
+                logger.debug(f"source within contour {i}: {r['filename']}")
                 bayes_factors.loc[i] = 0.9 * (4 * np.pi) / area
             else:
                 bayes_factors.loc[i] = 0.1 / (1 - area / (4 * np.pi))
