@@ -6,11 +6,13 @@ import pandas as pd
 import healpy as hp
 from tqdm import tqdm
 from pathlib import Path
-from pydantic import BaseModel, computed_field, ConfigDict, model_validator, Field, PositiveInt, TypeAdapter
-from typing import Any, Dict, Annotated, Union, Literal
-from astropy.coordinates import angular_separation
+from pydantic import BaseModel, computed_field, ConfigDict, model_validator, PositiveInt, TypeAdapter
+from typing import Any, Dict, Union, Literal
+from astropy.coordinates import angular_separation, SkyCoord
+import astropy.units as u
 import matplotlib.pyplot as plt
 from matplotlib import cm, colors
+import ligo.skymap.plot
 
 
 logger = logging.getLogger(__name__)
@@ -65,6 +67,14 @@ class BaseStreamMatch(BaseModel, abc.ABC):
     ) -> pd.Series:
         ...
 
+    @abc.abstractmethod
+    def setup_plot(self, primary_data: pd.DataFrame, n_secondary: int) -> tuple[plt.Figure, plt.Axes, list[plt.Axes]]:
+        ...
+
+    @staticmethod
+    def plot_data(ax: plt.Axes, orig_sources: pd.DataFrame, marker: str, c: str, label: str = ""):
+        ax.scatter(orig_sources.ra, orig_sources.dec, c=c, marker=marker, label=label)
+
     def disc_selection(self, match_data, ra, dec):
         match_data_hp_maps = []
         logger.debug("calculating healpix maps for disc selection")
@@ -117,10 +127,7 @@ class BaseStreamMatch(BaseModel, abc.ABC):
             primary_mean_dec = i_primary_data["dec"].median()
 
             if primary_source_id in plot_ids:
-                gs = {"width_ratios": [1] + n_secondary * [0.1]}
-                fig, axs = plt.subplots(ncols=n_secondary + 1, gridspec_kw=gs)
-                ax = axs[0] if n_secondary > 0 else axs
-                ax.scatter(i_primary_data["ra"], i_primary_data["dec"], c="r", label="primary")
+                fig, ax, axs = self.setup_plot(i_primary_data, n_secondary)
 
             if self.disc_radius_arcsec is not None:
                 selected_match_data = self.disc_selection(match_data, primary_mean_ra, primary_mean_dec)
@@ -143,21 +150,17 @@ class BaseStreamMatch(BaseModel, abc.ABC):
                     if "source_index" in orig_sources.columns:
                         for si in orig_sources.source_index.unique():
                             m = orig_sources.source_index == si
-                            ax.scatter(
-                                orig_sources.loc[m, "ra"],
-                                orig_sources.loc[m, "dec"],
-                                c=sm.to_rgba(orig_sources.loc[m, "woe"]),
-                                label=f"source {si}",
-                                marker=self.markers[si % len(self.markers)]
+                            self.plot_data(
+                                ax,
+                                orig_sources.loc[m],
+                                self.markers[si % len(self.markers)],
+                                sm.to_rgba(orig_sources.loc[m, "woe"]),
+                                f"source {si}"
                             )
                     else:
-                        ax.scatter(
-                            orig_sources.ra,
-                            orig_sources.dec,
-                            c=sm.to_rgba(orig_sources.woe),
-                            marker=self.markers[0]
-                        )
-                    plt.colorbar(sm, cax=axs[imd + 1], label=f"WOE {imd}")
+                        self.plot_data(ax, orig_sources, self.markers[0], sm.to_rgba(orig_sources.woe))
+
+                    plt.colorbar(sm, cax=axs[imd], label=f"WOE {imd}")
 
             primary_source_bayes_factors[primary_source_id] = bayes_factors
 
@@ -205,6 +208,16 @@ class GaussianStreamMatch(BaseStreamMatch):
         ssum = primary_sigma_arcsec ** 2 + sigmas_arcsec ** 2
         return 2 / ssum * np.exp(-psi_arcsec ** 2 / (2*ssum)) / SQARCSEC_TO_SR
 
+    def setup_plot(self, primary_data: pd.DataFrame, n_secondary: int) -> tuple[plt.Figure, plt.Axes, list[plt.Axes]]:
+        fig = plt.figure()
+        gridspec = fig.add_gridspec(ncols=n_secondary + 1, width_ratios=[1] + n_secondary * [0.1])
+        center = SkyCoord(primary_data["ra"].median(), primary_data["dec"].median(), unit="deg")
+        radius = self.disc_radius_arcsec * u.arcsec
+        ax = fig.add_subplot(gridspec[:, 0], projection="astro degrees zoom", center=center, radius=radius)
+        axs = [fig.add_subplot(gridspec[:, i]) for i in range(1, n_secondary + 1)]
+        ax.scatter(primary_data["ra"], primary_data["dec"], c="r", label="primary")
+        return fig, ax, axs[1:]
+
 
 class IceCubeContourStreamMatch(BaseStreamMatch):
     match_type: Literal["icecube_contour"]
@@ -221,25 +234,41 @@ class IceCubeContourStreamMatch(BaseStreamMatch):
         ctr_pix = np.where(s < llh_level)[0]
         ctr_area = len(ctr_pix) * hp.nside2pixarea(h["NSIDE"])
         logger.debug(f"{filename}: {ctr_area / SQDG_TO_SR} sqd")
-        return ctr_pix, ctr_area
+        return ctr_pix, ctr_area, llh_level
 
     def calculate_bayes_factors(
             self,
             primary_ra: float, primary_dec: float, primary_data: pd.DataFrame,
             orig_sources: pd.DataFrame
     ) -> pd.Series:
-        primary_sigma_arcsec = primary_data["sigma_arcsec"].median()
-        filenames = orig_sources["filename"]
         pix = hp.ang2pix(self.nside, primary_ra, primary_dec, lonlat=True)
         bayes_factors = pd.Series(0.0, index=orig_sources.index)
         for i, r in orig_sources.iterrows():
-            indices, area = self.contour_pixels_indices(r["filename"])
+            indices, area, _ = self.contour_pixels_indices(r["filename"])
             if pix in indices:
                 logger.debug(f"source within contour {i}")
                 bayes_factors.loc[i] = 0.9 * (4 * np.pi) / area
             else:
                 bayes_factors.loc[i] = 0.1 / (1 - area / (4 * np.pi))
         return bayes_factors
+
+    def setup_plot(self, primary_data: pd.DataFrame, n_secondary: int) -> tuple[plt.Figure, plt.Axes, list[plt.Axes]]:
+        fig = plt.figure()
+        gridspec = fig.add_gridspec(ncols=n_secondary + 1, width_ratios=[1] + n_secondary * [0.1])
+        center = SkyCoord(primary_data["ra"].median(), primary_data["dec"].median(), unit="deg")
+        ax = fig.add_subplot(gridspec[:, 0], projection="astro degrees mollweide", center=center)
+        axs = [fig.add_subplot(gridspec[:, i]) for i in range(1, n_secondary + 1)]
+        ax.scatter(primary_data["ra"] * u.deg, primary_data["dec"] * u.deg, c="r", label="primary")
+        return fig, ax, axs
+
+    def plot_data(self, ax: plt.Axes, orig_sources: pd.DataFrame, marker: str, c: str, label: str = ""):
+        ax.scatter(orig_sources.ra * u.deg, orig_sources.dec * u.deg, c=c, marker=marker, label=label)
+        c = np.atleast_1d(c)
+        for i, r in orig_sources.iterrows():
+            fn = r["filename"]
+            logger.debug(f"plotting contour {fn}")
+            _, _, llh_level = self.contour_pixels_indices(fn)
+            ax.contour_hpx(fn, levels=[llh_level], colors=[c[i]])
 
 
 StreamMatch = TypeAdapter(Union[GaussianStreamMatch, IceCubeContourStreamMatch])
