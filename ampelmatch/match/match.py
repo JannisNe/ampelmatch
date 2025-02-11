@@ -1,9 +1,12 @@
 import functools
 import logging
 import abc
+
+import ipdb
 import numpy as np
 import pandas as pd
 import healpy as hp
+from pydantic.experimental.pipeline import transform
 from tqdm import tqdm
 from pathlib import Path
 from pydantic import BaseModel, computed_field, ConfigDict, model_validator, PositiveInt, TypeAdapter
@@ -73,7 +76,7 @@ class BaseStreamMatch(BaseModel, abc.ABC):
 
     @staticmethod
     def plot_data(ax: plt.Axes, orig_sources: pd.DataFrame, marker: str, c: str, label: str = ""):
-        ax.scatter(orig_sources.ra, orig_sources.dec, c=c, marker=marker, label=label)
+        ax.scatter(orig_sources.ra, orig_sources.dec, c=c, marker=marker, label=label, transform=ax.get_transform('world'))
 
     def disc_selection(self, match_data, ra, dec):
         match_data_hp_maps = []
@@ -144,7 +147,10 @@ class BaseStreamMatch(BaseModel, abc.ABC):
                     orig_sources = md.loc[bayes_factors[imd].index]
                     orig_sources.loc[:, "marker"] = "s"
                     orig_sources.loc[:, "woe"] = np.log10(bayes_factors[imd])
-                    norm = colors.Normalize(vmin=min(orig_sources.woe), vmax=max(orig_sources.woe))
+                    norm = colors.Normalize(
+                        vmin=min(list(orig_sources.woe) + [-1]),
+                        vmax=max(list(orig_sources.woe) + [1])
+                    )
                     sm = cm.ScalarMappable(norm=norm, cmap=self.cmaps[imd])
 
                     if "source_index" in orig_sources.columns:
@@ -215,8 +221,8 @@ class GaussianStreamMatch(BaseStreamMatch):
         radius = self.disc_radius_arcsec * u.arcsec
         ax = fig.add_subplot(gridspec[:, 0], projection="astro degrees zoom", center=center, radius=radius)
         axs = [fig.add_subplot(gridspec[:, i]) for i in range(1, n_secondary + 1)]
-        ax.scatter(primary_data["ra"], primary_data["dec"], c="r", label="primary")
-        return fig, ax, axs[1:]
+        ax.scatter(primary_data["ra"], primary_data["dec"], c="r", label="primary", transform=ax.get_transform('world'))
+        return fig, ax, axs
 
 
 class IceCubeContourStreamMatch(BaseStreamMatch):
@@ -257,12 +263,12 @@ class IceCubeContourStreamMatch(BaseStreamMatch):
         gridspec = fig.add_gridspec(ncols=n_secondary + 1, width_ratios=[1] + n_secondary * [0.1])
         center = SkyCoord(primary_data["ra"].median(), primary_data["dec"].median(), unit="deg")
         ax = fig.add_subplot(gridspec[:, 0], projection="astro degrees mollweide", center=center)
+        t = ax.get_transform('world')
         axs = [fig.add_subplot(gridspec[:, i]) for i in range(1, n_secondary + 1)]
-        ax.scatter(primary_data["ra"] * u.deg, primary_data["dec"] * u.deg, c="r", label="primary")
+        ax.scatter(primary_data["ra"].values, primary_data["dec"].values, c="r", label="primary", transform=t)
         return fig, ax, axs
 
     def plot_data(self, ax: plt.Axes, orig_sources: pd.DataFrame, marker: str, c: str, label: str = ""):
-        ax.scatter(orig_sources.ra * u.deg, orig_sources.dec * u.deg, c=c, marker=marker, label=label)
         c = np.atleast_1d(c)
         for i, r in orig_sources.iterrows():
             fn = r["filename"]
