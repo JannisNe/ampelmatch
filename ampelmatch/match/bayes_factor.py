@@ -18,7 +18,6 @@ from pydantic import (
     ConfigDict,
     model_validator,
     PositiveInt,
-    TypeAdapter,
 )
 from tqdm import tqdm
 
@@ -399,4 +398,4 @@ class IceCubeContourBayesFactor(BaseBayesFactor):
             ax.contour_hpx(fn, levels=[llh_level], colors=[c[i]])
 
 
-BayesFactor = TypeAdapter(Union[GaussianBayesFactor, IceCubeContourBayesFactor])
+BayesFactor = Union[GaussianBayesFactor, IceCubeContourBayesFactor]
