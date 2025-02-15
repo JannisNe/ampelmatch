@@ -48,7 +48,7 @@ class SurfaceDensityPrior(BasePrior):
         )
         for i, i_data in enumerate(data):
             ids_list = hp.ang2pix(
-                nside=nside, theta=i_data.dec, phi=i_data.ra, lonlat=True
+                nside=nside, theta=i_data.ra, phi=i_data.dec, lonlat=True
             )
             ids, count = np.unique(ids_list, return_counts=True)
             densities.loc[ids, i] = count / hp.nside2pixarea(nside, degrees=True)
@@ -61,7 +61,7 @@ class SurfaceDensityPrior(BasePrior):
         median_prior = prior_per_hp_index.median()
         logger.info(f"median prior: {median_prior}")
         data_hp_index = hp.ang2pix(
-            nside=self.nside, theta=data.dec, phi=data.ra, lonlat=True
+            nside=self.nside, theta=data.ra, phi=data.dec, lonlat=True
         )
         return prior_per_hp_index.loc[data_hp_index]
 
