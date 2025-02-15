@@ -78,12 +78,14 @@ class BaseBayesFactor(BaseModel, abc.ABC):
         return values
 
     @computed_field
+    @functools.cached_property
     def _primary_data(self) -> pd.DataFrame:
         logger.info(f"Loading primary data")
         logger.debug(f"primary data config: {self.primary_data}")
         return pd.read_csv(**self.primary_data)
 
     @computed_field
+    @functools.cached_property
     def _match_data(self) -> list[pd.DataFrame]:
         logger.info("Loading match data")
         logger.debug(f"match data config: {self.match_data}")
