@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from astropy.coordinates import angular_separation, SkyCoord
+from ligo.skymap import plot as ligo_plot
 from matplotlib import cm, colors
 from pydantic import (
     BaseModel,
@@ -90,8 +91,10 @@ class BaseBayesFactor(BaseModel, abc.ABC):
         return [pd.read_csv(**d) for d in self.match_data]
 
     @computed_field
+    @functools.cached_property
     def plot_indices(self) -> list[int]:
         if isinstance(self.plot, int):
+            assert ligo_plot is not None, "ligo.skymap is not installed"
             logger.debug(f"selecting {self.plot} random sources to be plotted")
             return np.random.choice(
                 self._primary_data.index.unique(), self.plot, replace=False
@@ -186,7 +189,7 @@ class BaseBayesFactor(BaseModel, abc.ABC):
             primary_mean_ra = i_primary_data["ra"].median()
             primary_mean_dec = i_primary_data["dec"].median()
 
-            if primary_source_id in self.plot_ids:
+            if primary_source_id in self.plot_indices:
                 fig, ax, axs = self.setup_plot(i_primary_data, n_secondary)
 
             if self.disc_radius_arcsec is not None:
@@ -203,7 +206,7 @@ class BaseBayesFactor(BaseModel, abc.ABC):
                     primary_mean_ra, primary_mean_dec, i_primary_data, md
                 )
 
-                if primary_source_id in plot_ids:
+                if primary_source_id in self.plot_indices:
 
                     orig_sources = md.loc[bayes_factors[imd].index]
                     orig_sources.loc[:, "marker"] = "s"
@@ -236,7 +239,7 @@ class BaseBayesFactor(BaseModel, abc.ABC):
 
             primary_source_bayes_factors[primary_source_id] = bayes_factors
 
-            if primary_source_id in plot_ids:
+            if primary_source_id in self.plot_indices:
                 ax.set_aspect("equal")
                 ax.set_xlabel("ra")
                 ax.set_ylabel("dec")
