@@ -1,19 +1,25 @@
+import abc
 import functools
 import logging
-import abc
+from pathlib import Path
+from typing import Any, Dict, Union, Literal
+
+import astropy.units as u
+import healpy as hp
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import healpy as hp
-from tqdm import tqdm
-from pathlib import Path
-from pydantic import BaseModel, computed_field, ConfigDict, model_validator, PositiveInt, TypeAdapter
-from typing import Any, Dict, Union, Literal
 from astropy.coordinates import angular_separation, SkyCoord
-import astropy.units as u
-import matplotlib.pyplot as plt
 from matplotlib import cm, colors
-import ligo.skymap.plot
-
+from pydantic import (
+    BaseModel,
+    computed_field,
+    ConfigDict,
+    model_validator,
+    PositiveInt,
+    TypeAdapter,
+)
+from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
 SQDG_TO_SR = np.radians(1) ** 2
@@ -31,13 +37,44 @@ class BaseStreamMatch(BaseModel, abc.ABC):
     disc_radius_arcsec: float | None = 100
     plot: bool | PositiveInt = False
     plot_dir: Path | None = None
-    markers: list[str] = ["o", "s", "x", "+", "d", "v", "^", "<", ">", "1", "2", "3", "4", "8", "p", "P", "*", "h", "H", "X"]
-    cmaps: list[str] = ["viridis", "plasma", "inferno", "magma", "cividis", "twilight", "twilight_shifted", "turbo", "nipy_spectral"]
+    markers: list[str] = [
+        "o",
+        "s",
+        "x",
+        "+",
+        "d",
+        "v",
+        "^",
+        "<",
+        ">",
+        "1",
+        "2",
+        "3",
+        "4",
+        "8",
+        "p",
+        "P",
+        "*",
+        "h",
+        "H",
+        "X",
+    ]
+    cmaps: list[str] = [
+        "viridis",
+        "plasma",
+        "inferno",
+        "magma",
+        "cividis",
+        "twilight",
+        "twilight_shifted",
+        "turbo",
+        "nipy_spectral",
+    ]
 
-    @model_validator(mode='before')
+    @model_validator(mode="before")
     def plots_update(cls, values: Dict[str, Any]) -> Dict[str, Any]:
-        if values.get('plot_dir') is None:
-            values['plot_dir'] = Path(values["name"]) / "plots"
+        if values.get("plot_dir") is None:
+            values["plot_dir"] = Path(values["name"]) / "plots"
         return values
 
     @computed_field
@@ -54,26 +91,39 @@ class BaseStreamMatch(BaseModel, abc.ABC):
 
     def get_pixels_disc(self, ra, dec):
         vec = hp.ang2vec(ra, dec, lonlat=True)
-        return hp.query_disc(nside=self.nside, vec=vec, radius=np.radians(self.disc_radius_arcsec / 3600))
+        return hp.query_disc(
+            nside=self.nside, vec=vec, radius=np.radians(self.disc_radius_arcsec / 3600)
+        )
 
     def get_pixel(self, ra, dec):
         return [hp.ang2pix(self.nside, ra, dec, lonlat=True)]
 
     @abc.abstractmethod
     def calculate_bayes_factors(
-            self,
-            primary_ra: float, primary_dec: float, primary_data: pd.DataFrame,
-            orig_sources: pd.DataFrame
-    ) -> pd.Series:
-        ...
+        self,
+        primary_ra: float,
+        primary_dec: float,
+        primary_data: pd.DataFrame,
+        orig_sources: pd.DataFrame,
+    ) -> pd.Series: ...
 
     @abc.abstractmethod
-    def setup_plot(self, primary_data: pd.DataFrame, n_secondary: int) -> tuple[plt.Figure, plt.Axes, list[plt.Axes]]:
-        ...
+    def setup_plot(
+        self, primary_data: pd.DataFrame, n_secondary: int
+    ) -> tuple[plt.Figure, plt.Axes, list[plt.Axes]]: ...
 
     @staticmethod
-    def plot_data(ax: plt.Axes, orig_sources: pd.DataFrame, marker: str, c: str, label: str = ""):
-        ax.scatter(orig_sources.ra, orig_sources.dec, c=c, marker=marker, label=label, transform=ax.get_transform('world'))
+    def plot_data(
+        ax: plt.Axes, orig_sources: pd.DataFrame, marker: str, c: str, label: str = ""
+    ):
+        ax.scatter(
+            orig_sources.ra,
+            orig_sources.dec,
+            c=c,
+            marker=marker,
+            label=label,
+            transform=ax.get_transform("world"),
+        )
 
     def disc_selection(self, match_data, ra, dec):
         match_data_hp_maps = []
@@ -82,12 +132,16 @@ class BaseStreamMatch(BaseModel, abc.ABC):
             match_data_hp_maps.append(
                 pd.Series(
                     m.index,
-                    index=hp.ang2pix(self.nside, m["ra"], m["dec"], lonlat=True)
+                    index=hp.ang2pix(self.nside, m["ra"], m["dec"], lonlat=True),
                 )
             )
 
-        if (r := hp.pixelfunc.nside2resol(self.nside, arcmin=True)) < self.disc_radius_arcsec / 60:
-            logger.debug("healpix resolution is better than disc radius, using query_disc")
+        if (
+            r := hp.pixelfunc.nside2resol(self.nside, arcmin=True)
+        ) < self.disc_radius_arcsec / 60:
+            logger.debug(
+                "healpix resolution is better than disc radius, using query_disc"
+            )
             primary_hp_index = self.get_pixels_disc(ra, dec)
         else:
             logger.debug(
@@ -117,11 +171,15 @@ class BaseStreamMatch(BaseModel, abc.ABC):
         primary_source_bayes_factors = {}
 
         if self.plot:
-            plot_ids = np.random.choice(primary_data.index.unique(), self.plot, replace=False)
+            plot_ids = np.random.choice(
+                primary_data.index.unique(), self.plot, replace=False
+            )
         else:
             plot_ids = []
 
-        for primary_source_id in tqdm(primary_data.index.unique(), desc="primary sources"):
+        for primary_source_id in tqdm(
+            primary_data.index.unique(), desc="primary sources"
+        ):
             i_primary_data = primary_data.loc[primary_source_id]
             primary_mean_ra = i_primary_data["ra"].median()
             primary_mean_dec = i_primary_data["dec"].median()
@@ -130,14 +188,18 @@ class BaseStreamMatch(BaseModel, abc.ABC):
                 fig, ax, axs = self.setup_plot(i_primary_data, n_secondary)
 
             if self.disc_radius_arcsec is not None:
-                selected_match_data = self.disc_selection(match_data, primary_mean_ra, primary_mean_dec)
+                selected_match_data = self.disc_selection(
+                    match_data, primary_mean_ra, primary_mean_dec
+                )
             else:
                 selected_match_data = match_data
 
             # get secondary datapoints within disc
             bayes_factors = {}
             for imd, md in enumerate(selected_match_data):
-                bayes_factors[imd] = self.calculate_bayes_factors(primary_mean_ra, primary_mean_dec, i_primary_data, md)
+                bayes_factors[imd] = self.calculate_bayes_factors(
+                    primary_mean_ra, primary_mean_dec, i_primary_data, md
+                )
 
                 if primary_source_id in plot_ids:
 
@@ -146,7 +208,7 @@ class BaseStreamMatch(BaseModel, abc.ABC):
                     orig_sources.loc[:, "woe"] = np.log10(bayes_factors[imd])
                     norm = colors.Normalize(
                         vmin=min(list(orig_sources.woe) + [-1]),
-                        vmax=max(list(orig_sources.woe) + [1])
+                        vmax=max(list(orig_sources.woe) + [1]),
                     )
                     sm = cm.ScalarMappable(norm=norm, cmap=self.cmaps[imd])
 
@@ -158,10 +220,15 @@ class BaseStreamMatch(BaseModel, abc.ABC):
                                 orig_sources.loc[m],
                                 self.markers[si % len(self.markers)],
                                 sm.to_rgba(orig_sources.loc[m, "woe"]),
-                                f"source {si}"
+                                f"source {si}",
                             )
                     else:
-                        self.plot_data(ax, orig_sources, self.markers[0], sm.to_rgba(orig_sources.woe))
+                        self.plot_data(
+                            ax,
+                            orig_sources,
+                            self.markers[0],
+                            sm.to_rgba(orig_sources.woe),
+                        )
 
                     plt.colorbar(sm, cax=axs[imd], label=f"WOE {imd}")
 
@@ -189,14 +256,23 @@ class GaussianStreamMatch(BaseStreamMatch):
     match_type: Literal["gaussian"]
 
     def calculate_bayes_factors(
-            self,
-            primary_ra: float, primary_dec: float, primary_data: pd.DataFrame,
-            orig_sources: pd.DataFrame
+        self,
+        primary_ra: float,
+        primary_dec: float,
+        primary_data: pd.DataFrame,
+        orig_sources: pd.DataFrame,
     ) -> pd.Series:
-        psi_rad = angular_separation(*[
-            np.radians(v) for v in
-            [primary_ra, primary_dec, orig_sources["ra"], orig_sources["dec"]]
-        ])
+        psi_rad = angular_separation(
+            *[
+                np.radians(v)
+                for v in [
+                    primary_ra,
+                    primary_dec,
+                    orig_sources["ra"],
+                    orig_sources["dec"],
+                ]
+            ]
+        )
         psi_arcsec = np.degrees(psi_rad) * 3600
 
         if self.disc_radius_arcsec is not None:
@@ -208,17 +284,34 @@ class GaussianStreamMatch(BaseStreamMatch):
 
         sigmas_arcsec = orig_sources["sigma_arcsec"]
         primary_sigma_arcsec = primary_data["sigma_arcsec"].median()
-        ssum = primary_sigma_arcsec ** 2 + sigmas_arcsec ** 2
-        return 2 / ssum * np.exp(-psi_arcsec ** 2 / (2*ssum)) / SQARCSEC_TO_SR
+        ssum = primary_sigma_arcsec**2 + sigmas_arcsec**2
+        return 2 / ssum * np.exp(-(psi_arcsec**2) / (2 * ssum)) / SQARCSEC_TO_SR
 
-    def setup_plot(self, primary_data: pd.DataFrame, n_secondary: int) -> tuple[plt.Figure, plt.Axes, list[plt.Axes]]:
+    def setup_plot(
+        self, primary_data: pd.DataFrame, n_secondary: int
+    ) -> tuple[plt.Figure, plt.Axes, list[plt.Axes]]:
         fig = plt.figure()
-        gridspec = fig.add_gridspec(ncols=n_secondary + 1, width_ratios=[1] + n_secondary * [0.1])
-        center = SkyCoord(primary_data["ra"].median(), primary_data["dec"].median(), unit="deg")
+        gridspec = fig.add_gridspec(
+            ncols=n_secondary + 1, width_ratios=[1] + n_secondary * [0.1]
+        )
+        center = SkyCoord(
+            primary_data["ra"].median(), primary_data["dec"].median(), unit="deg"
+        )
         radius = self.disc_radius_arcsec * u.arcsec
-        ax = fig.add_subplot(gridspec[:, 0], projection="astro degrees zoom", center=center, radius=radius)
+        ax = fig.add_subplot(
+            gridspec[:, 0],
+            projection="astro degrees zoom",
+            center=center,
+            radius=radius,
+        )
         axs = [fig.add_subplot(gridspec[:, i]) for i in range(1, n_secondary + 1)]
-        ax.scatter(primary_data["ra"], primary_data["dec"], c="r", label="primary", transform=ax.get_transform('world'))
+        ax.scatter(
+            primary_data["ra"],
+            primary_data["dec"],
+            c="r",
+            label="primary",
+            transform=ax.get_transform("world"),
+        )
         return fig, ax, axs
 
 
@@ -240,9 +333,11 @@ class IceCubeContourStreamMatch(BaseStreamMatch):
         return ctr_pix, ctr_area, llh_level
 
     def calculate_bayes_factors(
-            self,
-            primary_ra: float, primary_dec: float, primary_data: pd.DataFrame,
-            orig_sources: pd.DataFrame
+        self,
+        primary_ra: float,
+        primary_dec: float,
+        primary_data: pd.DataFrame,
+        orig_sources: pd.DataFrame,
     ) -> pd.Series:
         bayes_factors = pd.Series(0.0, index=orig_sources.index)
         nside = 0
@@ -259,17 +354,38 @@ class IceCubeContourStreamMatch(BaseStreamMatch):
                 bayes_factors.loc[i] = 0.1 / (1 - area / (4 * np.pi))
         return bayes_factors
 
-    def setup_plot(self, primary_data: pd.DataFrame, n_secondary: int) -> tuple[plt.Figure, plt.Axes, list[plt.Axes]]:
+    def setup_plot(
+        self, primary_data: pd.DataFrame, n_secondary: int
+    ) -> tuple[plt.Figure, plt.Axes, list[plt.Axes]]:
         fig = plt.figure()
-        gridspec = fig.add_gridspec(ncols=n_secondary + 1, width_ratios=[1] + n_secondary * [0.1])
-        center = SkyCoord(primary_data["ra"].median(), primary_data["dec"].median(), unit="deg")
-        ax = fig.add_subplot(gridspec[:, 0], projection="astro degrees mollweide", center=center)
-        t = ax.get_transform('world')
+        gridspec = fig.add_gridspec(
+            ncols=n_secondary + 1, width_ratios=[1] + n_secondary * [0.1]
+        )
+        center = SkyCoord(
+            primary_data["ra"].median(), primary_data["dec"].median(), unit="deg"
+        )
+        ax = fig.add_subplot(
+            gridspec[:, 0], projection="astro degrees mollweide", center=center
+        )
+        t = ax.get_transform("world")
         axs = [fig.add_subplot(gridspec[:, i]) for i in range(1, n_secondary + 1)]
-        ax.scatter(primary_data["ra"].values, primary_data["dec"].values, c="r", label="primary", transform=t)
+        ax.scatter(
+            primary_data["ra"].values,
+            primary_data["dec"].values,
+            c="r",
+            label="primary",
+            transform=t,
+        )
         return fig, ax, axs
 
-    def plot_data(self, ax: plt.Axes, orig_sources: pd.DataFrame, marker: str, c: str, label: str = ""):
+    def plot_data(
+        self,
+        ax: plt.Axes,
+        orig_sources: pd.DataFrame,
+        marker: str,
+        c: str,
+        label: str = "",
+    ):
         c = np.atleast_1d(c)
         for i, r in orig_sources.iterrows():
             fn = r["filename"]
