@@ -89,6 +89,15 @@ class BaseBayesFactor(BaseModel, abc.ABC):
         logger.debug(f"match data config: {self.match_data}")
         return [pd.read_csv(**d) for d in self.match_data]
 
+    @computed_field
+    def plot_indices(self) -> list[int]:
+        if isinstance(self.plot, int):
+            logger.debug(f"selecting {self.plot} random sources to be plotted")
+            return np.random.choice(
+                self._primary_data.index.unique(), self.plot, replace=False
+            )
+        return []
+
     def get_pixels_disc(self, ra, dec):
         vec = hp.ang2vec(ra, dec, lonlat=True)
         return hp.query_disc(
@@ -170,13 +179,6 @@ class BaseBayesFactor(BaseModel, abc.ABC):
         logger.info("matching ...")
         primary_source_bayes_factors = {}
 
-        if self.plot:
-            plot_ids = np.random.choice(
-                primary_data.index.unique(), self.plot, replace=False
-            )
-        else:
-            plot_ids = []
-
         for primary_source_id in tqdm(
             primary_data.index.unique(), desc="primary sources"
         ):
@@ -184,7 +186,7 @@ class BaseBayesFactor(BaseModel, abc.ABC):
             primary_mean_ra = i_primary_data["ra"].median()
             primary_mean_dec = i_primary_data["dec"].median()
 
-            if primary_source_id in plot_ids:
+            if primary_source_id in self.plot_ids:
                 fig, ax, axs = self.setup_plot(i_primary_data, n_secondary)
 
             if self.disc_radius_arcsec is not None:
