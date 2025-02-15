@@ -1,25 +1,27 @@
 import logging
 from pathlib import Path
+
 import matplotlib.pyplot as plt
 
 from ampelmatch.data.config import DatasetConfig
 from ampelmatch.data.dataset import DatasetGenerator
-from ampelmatch.data.plotter import Plotter
-from ampelmatch.data.transients import TransientGenerator
-from ampelmatch.data.surveys import SurveyGenerator
 from ampelmatch.data.icecube_alert import IceCubeAlerts
-from ampelmatch.match.match import StreamMatch
-
+from ampelmatch.data.plotter import Plotter
+from ampelmatch.data.surveys import SurveyGenerator
+from ampelmatch.data.transients import TransientGenerator
+from ampelmatch.match.match import BayesFactor
 
 logger = logging.getLogger("ampelmatch.match.test_gaussian")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     logging.getLogger("ampelmatch").setLevel("DEBUG")
     dset_config_fname = Path(__file__).parent / "test_sim_icecube.json"
     dset_config = DatasetConfig.model_validate_json(dset_config_fname.read_text())
     h = dset_config.get_hash()
-    for t, tc in zip(TransientGenerator(dset_config.transients), dset_config.transients):
+    for t, tc in zip(
+        TransientGenerator(dset_config.transients), dset_config.transients
+    ):
         surveys = list(SurveyGenerator(dset_config.surveys))
         targets = [t for _ in surveys]
         fig, ax = Plotter.sky_plot(surveys, targets, target_skyarea=tc.skyarea)
@@ -36,7 +38,7 @@ if __name__ == '__main__':
 
     batched_fns = []
     for i in range(1, dsets.n_transients + 1):
-        batched_fns.append(dsets.filenames[:i*dsets.n_surveys])
+        batched_fns.append(dsets.filenames[: i * dsets.n_surveys])
 
     icecube_alerts = IceCubeAlerts()
     icecube_alert_filename = Path("icecube_alerts.csv")
@@ -60,7 +62,7 @@ if __name__ == '__main__':
                 {
                     "filepath_or_buffer": icecube_alert_filename,
                 }
-            ]
+            ],
         }
-        match = StreamMatch.validate_python(match_config)
+        match = BayesFactor.validate_python(match_config)
         bayes_factors = match.match()

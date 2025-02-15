@@ -26,7 +26,7 @@ SQDG_TO_SR = np.radians(1) ** 2
 SQARCSEC_TO_SR = np.radians(1 / 3600) ** 2
 
 
-class BaseStreamMatch(BaseModel, abc.ABC):
+class BaseBayesFactor(BaseModel, abc.ABC):
     name: str
     match_type: str
     nside: int
@@ -252,7 +252,7 @@ class BaseStreamMatch(BaseModel, abc.ABC):
         return primary_source_bayes_factors
 
 
-class GaussianStreamMatch(BaseStreamMatch):
+class GaussianBayesFactor(BaseBayesFactor):
     match_type: Literal["gaussian"]
 
     def calculate_bayes_factors(
@@ -315,7 +315,7 @@ class GaussianStreamMatch(BaseStreamMatch):
         return fig, ax, axs
 
 
-class IceCubeContourStreamMatch(BaseStreamMatch):
+class IceCubeContourBayesFactor(BaseBayesFactor):
     match_type: Literal["icecube_contour"]
 
     @staticmethod
@@ -394,4 +394,4 @@ class IceCubeContourStreamMatch(BaseStreamMatch):
             ax.contour_hpx(fn, levels=[llh_level], colors=[c[i]])
 
 
-StreamMatch = TypeAdapter(Union[GaussianStreamMatch, IceCubeContourStreamMatch])
+BayesFactor = TypeAdapter(Union[GaussianBayesFactor, IceCubeContourBayesFactor])
