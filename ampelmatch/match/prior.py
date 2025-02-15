@@ -3,6 +3,7 @@ import logging
 from typing import Literal, Union
 
 import healpy as hp
+import ipdb
 import numpy as np
 import pandas as pd
 from cachier import cachier
@@ -52,7 +53,8 @@ class SurfaceDensityPrior(BasePrior):
             )
             ids, count = np.unique(ids_list, return_counts=True)
             densities.loc[ids, i] = count / hp.nside2pixarea(nside, degrees=True)
-        return densities.product(axis=1) / (area_sqdg ** len(data))
+        ipdb.set_trace()
+        return densities.product(axis=1, skipna=False) / (area_sqdg ** len(data))
 
     def evaluate_prior(
         self, data: pd.DataFrame, match_data: list[pd.DataFrame]
