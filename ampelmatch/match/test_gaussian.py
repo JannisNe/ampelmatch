@@ -9,7 +9,7 @@ from ampelmatch.data.icecube_alert import IceCubeAlerts
 from ampelmatch.data.plotter import Plotter
 from ampelmatch.data.surveys import SurveyGenerator
 from ampelmatch.data.transients import TransientGenerator
-from ampelmatch.match.bayes_factor import BayesFactor
+from ampelmatch.match.match import StreamMatch
 
 logger = logging.getLogger("ampelmatch.match.test_gaussian")
 
@@ -49,17 +49,25 @@ if __name__ == "__main__":
     for i, fns in enumerate(batched_fns):
         logger.info(f"Matching batch {i}")
         match_config = {
-            "name": f"{dset_config.name}/{h}/{i}",
-            "match_type": "gaussian",
-            "plot": 30,
-            "nside": 128,
-            "primary_data": {"filepath_or_buffer": fns[0], "index_col": 0},
-            "match_data": [
-                {
-                    "filepath_or_buffer": fn,
-                }
-                for fn in fns[1:]
-            ],
+            "bayes_factor": {
+                "name": f"{dset_config.name}/{h}/{i}",
+                "match_type": "gaussian",
+                "plot": 30,
+                "nside": 128,
+                "primary_data": {"filepath_or_buffer": fns[0], "index_col": 0},
+                "match_data": [
+                    {
+                        "filepath_or_buffer": fn,
+                    }
+                    for fn in fns[1:]
+                ],
+            },
+            "prior": {
+                "name": "surface_density",
+                "nside": 1024,
+                "area_sqdg": dset_config.surveys[0].fov
+                * len(dset_config.surveys[0].fields),
+            },
         }
-        match = BayesFactor.validate_python(match_config)
-        bayes_factors = match.match()
+        match = StreamMatch.model_validate(match_config)
+        probabilities = match.calculate_posteriors()
