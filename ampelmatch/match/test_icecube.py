@@ -9,7 +9,7 @@ from ampelmatch.data.icecube_alert import IceCubeAlerts
 from ampelmatch.data.plotter import Plotter
 from ampelmatch.data.surveys import SurveyGenerator
 from ampelmatch.data.transients import TransientGenerator
-from ampelmatch.match.match import BayesFactor
+from ampelmatch.match.bayes_factor import BayesFactor
 
 logger = logging.getLogger("ampelmatch.match.test_gaussian")
 
