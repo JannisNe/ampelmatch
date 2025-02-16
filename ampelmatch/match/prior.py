@@ -6,14 +6,13 @@ import healpy as hp
 import ipdb
 import numpy as np
 import pandas as pd
+from ampelmatch.cache import cache_dir, compute_density_hash
 from cachier import cachier
 from pydantic import (
     BaseModel,
     field_validator,
     PositiveInt,
 )
-
-from ampelmatch.cache import cache_dir
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +31,8 @@ class SurfaceDensityPrior(BasePrior):
     nside: PositiveInt
     area_sqdg: float
 
+    cache: dict = {}
+
     @field_validator("nside")
     def check_nside(cls, v):
         if not hp.isnsideok(v):
@@ -39,8 +40,8 @@ class SurfaceDensityPrior(BasePrior):
         return v
 
     @staticmethod
-    @cachier(cache_dir=cache_dir)
-    def compute_prior(data: list[pd.DataFrame], nside, area_sqdg) -> pd.DataFrame:
+    @cachier(cache_dir=cache_dir, pickle_reload=False, hash_func=compute_density_hash)
+    def compute_densities(data: tuple[pd.DataFrame], nside, area_sqdg) -> pd.DataFrame:
         logger.info("computing prior")
         densities = pd.DataFrame(
             index=range(hp.nside2npix(nside)),
@@ -56,12 +57,20 @@ class SurfaceDensityPrior(BasePrior):
         ipdb.set_trace()
         return densities.product(axis=1, skipna=False) / (area_sqdg ** len(data))
 
+    def get_densities(
+        self, data: tuple[pd.DataFrame], nside, area_sqdg
+    ) -> pd.DataFrame:
+        h = compute_density_hash(
+            [], {"data": data, "nside": nside, "area_sqdg": area_sqdg}
+        )
+        if h not in self.cache:
+            self.cache[h] = self.compute_densities(data, nside, area_sqdg)
+        return self.cache[h]
+
     def evaluate_prior(
         self, data: pd.DataFrame, match_data: list[pd.DataFrame]
     ) -> float:
-        prior_per_hp_index = self.compute_prior(match_data, self.nside, self.area_sqdg)
-        median_prior = prior_per_hp_index.median()
-        logger.info(f"median prior: {median_prior}")
+        prior_per_hp_index = self.get_densities(match_data, self.nside, self.area_sqdg)
         data_hp_index = hp.ang2pix(
             nside=self.nside, theta=data.ra, phi=data.dec, lonlat=True
         )
