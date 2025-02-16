@@ -18,7 +18,7 @@ def model_hash(models, kwds):
 
 def dataframe_hash(df):
     h1 = hashlib.sha256(hash_pandas_object(df).values).hexdigest()
-    h2 = hashlib.sha256(df.columns.to_numpy()).hexdigest()
+    h2 = hashlib.sha256(df.columns.to_numpy().astype(str)).hexdigest()
     h3 = hashlib.sha256(df.index.to_numpy()).hexdigest()
     return hashlib.sha256((h1 + h2 + h3).encode()).hexdigest()
 
