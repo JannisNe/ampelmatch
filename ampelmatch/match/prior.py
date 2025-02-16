@@ -3,7 +3,6 @@ import logging
 from typing import Literal, Union
 
 import healpy as hp
-import ipdb
 import numpy as np
 import pandas as pd
 from ampelmatch.cache import cache_dir, compute_density_hash
@@ -54,7 +53,6 @@ class SurfaceDensityPrior(BasePrior):
             )
             ids, count = np.unique(ids_list, return_counts=True)
             densities.loc[ids, i] = count / hp.nside2pixarea(nside, degrees=True)
-        ipdb.set_trace()
         return densities.product(axis=1, skipna=False) / (area_sqdg ** len(data))
 
     def get_densities(
@@ -74,7 +72,6 @@ class SurfaceDensityPrior(BasePrior):
         ra = data.ra.median()
         dec = data.dec.median()
         data_hp_index = hp.ang2pix(nside=self.nside, theta=ra, phi=dec, lonlat=True)
-        ipdb.set_trace()
         return prior_per_hp_index.loc[data_hp_index]
 
 

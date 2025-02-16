@@ -1,9 +1,6 @@
 import logging
 from typing import Annotated
 
-from pydantic import BaseModel, Field
-from tqdm import tqdm
-
 from ampelmatch.match.bayes_factor import BayesFactor
 from ampelmatch.match.prior import Prior
 from pydantic import BaseModel, Field
