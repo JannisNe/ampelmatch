@@ -62,6 +62,7 @@ class SurfaceDensityPrior(BasePrior):
             [], {"data": data, "nside": nside, "area_sqdg": area_sqdg}
         )
         if h not in self.cache:
+            logger.debug(f"cache miss: {h}")
             self.cache[h] = self.compute_densities(data, nside, area_sqdg)
         return self.cache[h]
 
