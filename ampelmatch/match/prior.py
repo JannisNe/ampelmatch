@@ -40,7 +40,7 @@ class SurfaceDensityPrior(BasePrior):
         return v
 
     @staticmethod
-    @cachier(cache_dir=cache_dir, pickle_reload=False, hash_func=compute_density_hash)
+    @cachier(cache_dir=cache_dir, hash_func=compute_density_hash)
     def compute_densities(data: tuple[pd.DataFrame], nside, area_sqdg) -> pd.DataFrame:
         logger.info("computing prior")
         densities = pd.DataFrame(
