@@ -5,13 +5,14 @@ from typing import Literal, Union
 import healpy as hp
 import numpy as np
 import pandas as pd
-from ampelmatch.cache import cache_dir, compute_density_hash
 from cachier import cachier
 from pydantic import (
     BaseModel,
     field_validator,
     PositiveInt,
 )
+
+from ampelmatch.cache import cache_dir, compute_density_hash
 
 logger = logging.getLogger(__name__)
 
