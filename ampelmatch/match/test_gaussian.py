@@ -2,7 +2,6 @@ import logging
 from pathlib import Path
 
 import matplotlib.pyplot as plt
-
 from ampelmatch.data.config import DatasetConfig
 from ampelmatch.data.dataset import DatasetGenerator
 from ampelmatch.data.icecube_alert import IceCubeAlerts
