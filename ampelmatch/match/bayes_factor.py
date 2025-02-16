@@ -109,7 +109,9 @@ class BaseBayesFactor(BaseModel, abc.ABC):
         )
 
     def get_pixel(self, ra, dec):
-        return [hp.ang2pix(self.nside, ra, dec, lonlat=True)]
+        return list(hp.get_all_neighbours(self.nside, ra, dec, lonlat=True)) + [
+            hp.ang2pix(self.nside, ra, dec, lonlat=True)
+        ]
 
     @abc.abstractmethod
     def calculate_bayes_factors(
