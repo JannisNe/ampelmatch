@@ -138,10 +138,12 @@ class BaseBayesFactor(BaseModel, abc.ABC):
             transform=ax.get_transform("world"),
         )
 
-    def add_data_to_plot(self, ax, data, color_column, cmap, cbar_label, cax):
+    def add_data_to_plot(
+        self, ax, data, color_column, cmap, cbar_label, cax, cbar_lim=(-1, 1)
+    ):
         norm = colors.Normalize(
-            vmin=min(list(data[color_column]) + [-1]),
-            vmax=max(list(data[color_column]) + [1]),
+            vmin=min(list(data[color_column]) + [cbar_lim[1]]),
+            vmax=max(list(data[color_column]) + [cbar_lim[1]]),
         )
         sm = cm.ScalarMappable(norm=norm, cmap=cmap)
 

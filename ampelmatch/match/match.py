@@ -49,6 +49,7 @@ class StreamMatch(BaseModel):
                         self.bayes_factor.cmaps[sd_id],
                         f"posterior {sd_id}",
                         axs[sd_id],
+                        cbar_lim=(0, 1),
                     )
 
             if source_id in self.bayes_factor.plot_indices:
