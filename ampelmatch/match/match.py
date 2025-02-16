@@ -2,6 +2,7 @@ import logging
 from typing import Annotated
 
 from pydantic import BaseModel, Field
+from tqdm import tqdm
 
 from ampelmatch.match.bayes_factor import BayesFactor
 from ampelmatch.match.prior import Prior
@@ -17,7 +18,11 @@ class StreamMatch(BaseModel):
         logger.info("Calculating probabilities")
         bayes_factors = self.bayes_factor.match()
         posteriors = {}
-        for source_id, bf in bayes_factors.items():
+        for source_id, bf in tqdm(
+            bayes_factors.items(),
+            desc="Calculating posteriors",
+            total=len(bayes_factors),
+        ):
             i_posteriors = {}
             for sd_id, sdbf in bf.items():
                 p = self.prior.evaluate_prior(
