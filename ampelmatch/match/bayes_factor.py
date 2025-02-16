@@ -138,6 +138,45 @@ class BaseBayesFactor(BaseModel, abc.ABC):
             transform=ax.get_transform("world"),
         )
 
+    def add_data_to_plot(self, ax, data, color_column, cmap, cbar_label, cax):
+        norm = colors.Normalize(
+            vmin=min(list(data[color_column]) + [-1]),
+            vmax=max(list(data[color_column]) + [1]),
+        )
+        sm = cm.ScalarMappable(norm=norm, cmap=cmap)
+
+        if "source_index" in data.columns:
+            for si in data.source_index.unique():
+                m = data.source_index == si
+                self.plot_data(
+                    ax,
+                    data.loc[m],
+                    self.markers[si % len(self.markers)],
+                    sm.to_rgba(data.loc[m, color_column]),
+                    f"source {si}",
+                )
+        else:
+            self.plot_data(
+                ax,
+                data,
+                self.markers[0],
+                sm.to_rgba(data[color_column]),
+            )
+
+        plt.colorbar(sm, cax=cax, label=cbar_label)
+
+    def finalize_plot(self, fig, ax, primary_source_id):
+        ax.set_aspect("equal")
+        ax.set_xlabel("ra")
+        ax.set_ylabel("dec")
+        ax.legend()
+        ax.legend()
+        fname = self.plot_dir / f"{primary_source_id}.pdf"
+        fname.parent.mkdir(exist_ok=True, parents=True)
+        fig.savefig(fname)
+        logger.debug(f"saved plot to {fname}")
+        plt.close()
+
     def disc_selection(self, match_data, ra, dec):
         match_data_hp_maps = []
         logger.debug("calculating healpix maps for disc selection")
@@ -206,54 +245,18 @@ class BaseBayesFactor(BaseModel, abc.ABC):
                 bayes_factors[imd] = self.calculate_bayes_factors(
                     primary_mean_ra, primary_mean_dec, i_primary_data, md
                 )
-
                 if primary_source_id in self.plot_indices:
-
                     orig_sources = md.loc[bayes_factors[imd].index]
                     orig_sources.loc[:, "marker"] = "s"
                     orig_sources.loc[:, "woe"] = np.log10(bayes_factors[imd])
-                    norm = colors.Normalize(
-                        vmin=min(list(orig_sources.woe) + [-1]),
-                        vmax=max(list(orig_sources.woe) + [1]),
+                    self.add_data_to_plot(
+                        ax, orig_sources, "woe", self.cmaps[imd], f"WOE {imd}", axs[imd]
                     )
-                    sm = cm.ScalarMappable(norm=norm, cmap=self.cmaps[imd])
-
-                    if "source_index" in orig_sources.columns:
-                        for si in orig_sources.source_index.unique():
-                            m = orig_sources.source_index == si
-                            self.plot_data(
-                                ax,
-                                orig_sources.loc[m],
-                                self.markers[si % len(self.markers)],
-                                sm.to_rgba(orig_sources.loc[m, "woe"]),
-                                f"source {si}",
-                            )
-                    else:
-                        self.plot_data(
-                            ax,
-                            orig_sources,
-                            self.markers[0],
-                            sm.to_rgba(orig_sources.woe),
-                        )
-
-                    plt.colorbar(sm, cax=axs[imd], label=f"WOE {imd}")
 
             primary_source_bayes_factors[primary_source_id] = bayes_factors
 
             if primary_source_id in self.plot_indices:
-                ax.set_aspect("equal")
-                ax.set_xlabel("ra")
-                ax.set_ylabel("dec")
-                ax.legend()
-                ax.legend()
-                fname = self.plot_dir / f"{primary_source_id}.pdf"
-                fname.parent.mkdir(exist_ok=True, parents=True)
-                fig.savefig(fname)
-                logger.debug(f"saved plot to {fname}")
-                plt.close()
-
-                if isinstance(self.plot, int):
-                    self.plot -= 1
+                self.finalize_plot(fig, ax, primary_source_id)
 
         return primary_source_bayes_factors
 
