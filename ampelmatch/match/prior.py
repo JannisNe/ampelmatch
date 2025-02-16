@@ -71,9 +71,10 @@ class SurfaceDensityPrior(BasePrior):
         self, data: pd.DataFrame, match_data: list[pd.DataFrame]
     ) -> float:
         prior_per_hp_index = self.get_densities(match_data, self.nside, self.area_sqdg)
-        data_hp_index = hp.ang2pix(
-            nside=self.nside, theta=data.ra, phi=data.dec, lonlat=True
-        )
+        ra = data.ra.median()
+        dec = data.dec.median()
+        data_hp_index = hp.ang2pix(nside=self.nside, theta=ra, phi=dec, lonlat=True)
+        ipdb.set_trace()
         return prior_per_hp_index.loc[data_hp_index]
 
 
