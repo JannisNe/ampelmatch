@@ -5,14 +5,13 @@ from typing import Literal, Union
 import healpy as hp
 import numpy as np
 import pandas as pd
+from ampelmatch.cache import cache_dir, compute_density_hash
 from cachier import cachier
 from pydantic import (
     BaseModel,
     field_validator,
     PositiveInt,
 )
-
-from ampelmatch.cache import cache_dir, compute_density_hash
 
 logger = logging.getLogger(__name__)
 
@@ -29,8 +28,6 @@ class BasePrior(BaseModel, abc.ABC):
 class SurfaceDensityPrior(BasePrior):
     name: Literal["surface_density"]
     nside: PositiveInt
-    area_sqdg: float
-
     cache: dict = {}
 
     @field_validator("nside")
@@ -41,7 +38,7 @@ class SurfaceDensityPrior(BasePrior):
 
     @staticmethod
     @cachier(cache_dir=cache_dir, hash_func=compute_density_hash)
-    def compute_densities(data: tuple[pd.DataFrame], nside, area_sqdg) -> pd.DataFrame:
+    def compute_densities(data: tuple[pd.DataFrame], nside) -> pd.DataFrame:
         logger.info("computing prior")
         densities = pd.DataFrame(
             index=range(hp.nside2npix(nside)),
@@ -53,24 +50,23 @@ class SurfaceDensityPrior(BasePrior):
                 nside=nside, theta=i_data.ra, phi=i_data.dec, lonlat=True
             )
             ids, count = np.unique(ids_list, return_counts=True)
-            densities.loc[ids, i] = count / hp.nside2pixarea(nside, degrees=True)
-        return densities.product(axis=1, skipna=False) / (area_sqdg ** len(data))
+            densities.loc[ids, i] = count / hp.nside2pixarea(nside)
+        logger.info(f"median density per sr \n{densities.median().to_string()}")
+        return (
+            densities.product(axis=1, skipna=False) * (4 * np.pi) ** len(data)
+        ) ** -1
 
-    def get_densities(
-        self, data: tuple[pd.DataFrame], nside, area_sqdg
-    ) -> pd.DataFrame:
-        h = compute_density_hash(
-            [], {"data": data, "nside": nside, "area_sqdg": area_sqdg}
-        )
+    def get_densities(self, data: tuple[pd.DataFrame], nside) -> pd.DataFrame:
+        h = compute_density_hash([], {"data": data, "nside": nside})
         if h not in self.cache:
             logger.debug(f"cache miss: {h}")
-            self.cache[h] = self.compute_densities(data, nside, area_sqdg)
+            self.cache[h] = self.compute_densities(data, nside)
         return self.cache[h]
 
     def evaluate_prior(
         self, data: pd.DataFrame, match_data: list[pd.DataFrame]
     ) -> float:
-        prior_per_hp_index = self.get_densities(match_data, self.nside, self.area_sqdg)
+        prior_per_hp_index = self.get_densities(match_data, self.nside)
         ra = data.ra.median()
         dec = data.dec.median()
         data_hp_index = hp.ang2pix(nside=self.nside, theta=ra, phi=dec, lonlat=True)

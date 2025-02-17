@@ -27,13 +27,11 @@ def compute_density_hash(args, kwargs):
     if len(args) > 0:
         raise ValueError("args not supported")
     dfs = kwargs.pop("data")
-    area_sqdg = kwargs.pop("area_sqdg")
     nside = kwargs.pop("nside")
     if len(kwargs) > 0:
         raise ValueError(f"unexpected kwargs: {list(kwargs.keys())}!")
     df_hash = hashlib.sha256(
         str(tuple(dataframe_hash(df) for df in dfs)).encode()
     ).hexdigest()
-    area_hash = hashlib.sha256(str(area_sqdg).encode()).hexdigest()
     nside_hash = hashlib.sha256(str(nside).encode()).hexdigest()
-    return hashlib.sha256((df_hash + area_hash + nside_hash).encode()).hexdigest()
+    return hashlib.sha256((df_hash + nside_hash).encode()).hexdigest()
