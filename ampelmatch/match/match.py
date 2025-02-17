@@ -34,7 +34,7 @@ class StreamMatch(BaseModel):
                     self.bayes_factor._primary_data.loc[source_id],
                     [self.bayes_factor._match_data[sd_id]],
                 )
-                i_posteriors[sd_id] = sdbf * p / (sdbf * p + 1)
+                i_posteriors[sd_id] = (1 + (1 - p) / (p * sdbf)) ** (-1)
 
                 if source_id in self.bayes_factor.plot_indices:
                     orig_sources = self.bayes_factor._match_data[sd_id].loc[
