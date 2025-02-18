@@ -79,14 +79,14 @@ class BaseBayesFactor(BaseModel, abc.ABC):
 
     @computed_field
     @functools.cached_property
-    def _primary_data(self) -> pd.DataFrame:
+    def primary_data_df(self) -> pd.DataFrame:
         logger.info(f"Loading primary data")
         logger.debug(f"primary data config: {self.primary_data}")
         return pd.read_csv(**self.primary_data)
 
     @computed_field
     @functools.cached_property
-    def _match_data(self) -> list[pd.DataFrame]:
+    def match_data_df(self) -> list[pd.DataFrame]:
         logger.info("Loading match data")
         logger.debug(f"match data config: {self.match_data}")
         return [pd.read_csv(**d) for d in self.match_data]
@@ -98,7 +98,7 @@ class BaseBayesFactor(BaseModel, abc.ABC):
             assert ligo_plot is not None, "ligo.skymap is not installed"
             logger.debug(f"selecting {self.plot} random sources to be plotted")
             return np.random.choice(
-                self._primary_data.index.unique(), self.plot, replace=False
+                self.primary_data_df.index.unique(), self.plot, replace=False
             )
         return []
 
@@ -218,8 +218,8 @@ class BaseBayesFactor(BaseModel, abc.ABC):
 
     def match(self):
         logger.info("Matching streams")
-        primary_data = self._primary_data
-        match_data = self._match_data
+        primary_data = self.primary_data_df
+        match_data = self.match_data_df
         n_secondary = len(match_data)
 
         # Perform matching
