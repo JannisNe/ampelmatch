@@ -12,10 +12,10 @@ SQARCSEC_TO_SR = np.radians(1 / 3600) ** 2
 def prior_plot():
 
     area = 2.0  # sq deg
-    sigma_1 = 1  # arcsec
-    sigma_2 = 6  # arcsec
+    sigma_1 = 0.1  # arcsec
+    sigma_2 = 2.5  # arcsec
     ssum = sigma_1**2 + sigma_2**2
-    psi = np.linspace(0, 100, 100)  # arcsec
+    psi = np.linspace(0, 30, 100)  # arcsec
     b = 2 / ssum * np.exp(-(psi**2) / (2 * ssum)) / SQARCSEC_TO_SR
     posts = []
     densities = [1e5, 1e6, 1e7, 8.5e11]
