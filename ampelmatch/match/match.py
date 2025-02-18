@@ -30,10 +30,7 @@ class StreamMatch(BaseModel):
                 fig, ax, axs = self.bayes_factor.setup_plot(primary_data, len(bf))
 
             for sd_id, sdbf in bf.items():
-                p = self.prior.evaluate_prior(
-                    self.bayes_factor.primary_data_df.loc[source_id],
-                    [self.bayes_factor.match_data_df[sd_id]],
-                )
+                p = self.prior(self.bayes_factor.primary_data_df.loc[source_id])
                 i_posteriors[sd_id] = (1 + (1 - p) / (p * sdbf)) ** (-1)
 
                 if source_id in self.bayes_factor.plot_indices:
