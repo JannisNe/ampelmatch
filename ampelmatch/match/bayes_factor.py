@@ -219,7 +219,7 @@ class BaseBayesFactor(BaseModel, abc.ABC):
 
         return selected_data
 
-    def match(self):
+    def evaluate(self):
         logger.info("Matching streams")
         primary_data = self.primary_data_df
         match_data = self.match_data_df

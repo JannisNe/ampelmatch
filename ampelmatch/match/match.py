@@ -15,7 +15,7 @@ class StreamMatch(BaseModel):
 
     def calculate_posteriors(self):
         logger.info("Calculating probabilities")
-        bayes_factors = self.bayes_factor.match()
+        bayes_factors = self.bayes_factor.evaluate()
         posteriors = {}
         self.bayes_factor.plot_dir = self.bayes_factor.plot_dir / "posteriors"
         for source_id, bf in tqdm(

@@ -65,4 +65,4 @@ if __name__ == "__main__":
             ],
         }
         match = BayesFactor.validate_python(match_config)
-        bayes_factors = match.match()
+        bayes_factors = match.evaluate()
