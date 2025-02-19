@@ -79,7 +79,7 @@ if __name__ == "__main__":
                     for fn in fns[1:]
                 ],
             },
-            "posterior_threshold": 0.96,
+            "posterior_threshold": 0.95,
         }
         match = match.StreamMatch.model_validate(match_config)
         probabilities = match.posteriors
