@@ -77,6 +77,7 @@ class SurfaceDensityPrior(BasePrior, frozen=True):
         a = self.area_sqdg * (np.pi / 180) ** 2
         total_prior = sum(prios_values) * (a / (4 * np.pi)) ** -len(self.match_data_df)
         logger.debug(f"total prior {total_prior}")
+        # TODO: decide on the tolerance which is very arbitrary at the moment
         if not np.isclose(np.log2(total_prior), 0, atol=2):
             raise ValueError(f"total prior {total_prior} is not close to 1")
         return self
