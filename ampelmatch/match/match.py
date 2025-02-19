@@ -59,7 +59,7 @@ class StreamMatch(BaseModel):
             posteriors[source_id] = i_posteriors
         return posteriors
 
-    def match(self):
+    def match(self) -> dict:
         return {
             source_id: {
                 sd_id: post.index[post > self.posterior_threshold].tolist()
@@ -68,8 +68,14 @@ class StreamMatch(BaseModel):
             for source_id, posts in self.posteriors.items()
         }
 
-    def n_matches(self) -> float:
-        return sum(len(v2) for v1 in self.match().values() for v2 in v1.values())
+    def n_matches(self) -> list[float]:
+        return [
+            sum([len(v[i]) for v in self.match().values()])
+            for i in range(len(self.bayes_factor.match_data_df))
+        ]
 
-    def posterior_sum(self) -> float:
-        return sum(sum(v2) for v1 in self.posteriors.values() for v2 in v1.values())
+    def posterior_sum(self) -> list[float]:
+        return [
+            sum([v[i].sum() for v in self.posteriors.values()])
+            for i in range(len(self.bayes_factor.match_data_df))
+        ]
