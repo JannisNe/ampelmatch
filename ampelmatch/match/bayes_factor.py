@@ -253,9 +253,11 @@ class BaseBayesFactor(BaseModel, abc.ABC):
                     primary_mean_ra, primary_mean_dec, i_primary_data, md
                 )
                 if primary_source_id in self.plot_indices:
-                    orig_sources = md.loc[bayes_factors[imd].index]
+                    bf = bayes_factors[imd]
+                    bf = bf[bf > 0]
+                    orig_sources = md.loc[bf.index]
                     orig_sources.loc[:, "marker"] = "s"
-                    orig_sources.loc[:, "woe"] = np.log10(bayes_factors[imd])
+                    orig_sources.loc[:, "woe"] = np.log10(bf)
                     self.add_data_to_plot(
                         ax, orig_sources, "woe", self.cmaps[imd], f"WOE {imd}", axs[imd]
                     )
