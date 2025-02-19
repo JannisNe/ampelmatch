@@ -79,14 +79,14 @@ class BaseBayesFactor(BaseModel, abc.ABC):
 
     @computed_field
     @functools.cached_property
-    def _primary_data(self) -> pd.DataFrame:
+    def primary_data_df(self) -> pd.DataFrame:
         logger.info(f"Loading primary data")
         logger.debug(f"primary data config: {self.primary_data}")
         return pd.read_csv(**self.primary_data)
 
     @computed_field
     @functools.cached_property
-    def _match_data(self) -> list[pd.DataFrame]:
+    def match_data_df(self) -> list[pd.DataFrame]:
         logger.info("Loading match data")
         logger.debug(f"match data config: {self.match_data}")
         return [pd.read_csv(**d) for d in self.match_data]
@@ -98,7 +98,7 @@ class BaseBayesFactor(BaseModel, abc.ABC):
             assert ligo_plot is not None, "ligo.skymap is not installed"
             logger.debug(f"selecting {self.plot} random sources to be plotted")
             return np.random.choice(
-                self._primary_data.index.unique(), self.plot, replace=False
+                self.primary_data_df.index.unique(), self.plot, replace=False
             )
         return []
 
@@ -198,7 +198,7 @@ class BaseBayesFactor(BaseModel, abc.ABC):
             logger.debug(
                 "healpix resolution is better than disc radius, using query_disc"
             )
-            primary_hp_index = self.get_pixels_disc(ra, dec)
+            primary_hp_index = self.get_pmatchixels_disc(ra, dec)
         else:
             logger.debug(
                 f"healpix resolution {r} arcmin is worse than "
@@ -208,18 +208,21 @@ class BaseBayesFactor(BaseModel, abc.ABC):
 
         selected_data = []
         for m, mh in zip(match_data, match_data_hp_maps):
-            try:
-                hpi = mh.loc[primary_hp_index]
-            except KeyError:
+            pixels_in_search_region_with_sources = mh.index.intersection(
+                primary_hp_index
+            )
+            if len(pixels_in_search_region_with_sources) == 0:
                 continue
+            hpi = mh.loc[pixels_in_search_region_with_sources]
             logger.debug(f"selected {len(hpi)} sources")
             selected_data.append(m.loc[hpi])
+
         return selected_data
 
-    def match(self):
+    def evaluate(self):
         logger.info("Matching streams")
-        primary_data = self._primary_data
-        match_data = self._match_data
+        primary_data = self.primary_data_df
+        match_data = self.match_data_df
         n_secondary = len(match_data)
 
         # Perform matching
@@ -250,9 +253,11 @@ class BaseBayesFactor(BaseModel, abc.ABC):
                     primary_mean_ra, primary_mean_dec, i_primary_data, md
                 )
                 if primary_source_id in self.plot_indices:
-                    orig_sources = md.loc[bayes_factors[imd].index]
+                    bf = bayes_factors[imd]
+                    bf = bf[bf > 0]
+                    orig_sources = md.loc[bf.index]
                     orig_sources.loc[:, "marker"] = "s"
-                    orig_sources.loc[:, "woe"] = np.log10(bayes_factors[imd])
+                    orig_sources.loc[:, "woe"] = np.log10(bf)
                     self.add_data_to_plot(
                         ax, orig_sources, "woe", self.cmaps[imd], f"WOE {imd}", axs[imd]
                     )
