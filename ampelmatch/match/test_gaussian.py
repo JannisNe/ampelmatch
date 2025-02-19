@@ -79,6 +79,12 @@ if __name__ == "__main__":
                     for fn in fns[1:]
                 ],
             },
+            "posterior_threshold": 0.96,
         }
         match = match.StreamMatch.model_validate(match_config)
-        probabilities = match.calculate_posteriors()
+        probabilities = match.posteriors
+        print(
+            match.n_matches(),
+            match.posterior_sum(),
+            len(match.bayes_factor.match_data_df[0]),
+        )

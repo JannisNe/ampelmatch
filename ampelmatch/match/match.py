@@ -1,10 +1,12 @@
 import logging
 from typing import Annotated
 
-from ampelmatch.match.bayes_factor import BayesFactor
-from ampelmatch.match.prior import Prior
+from cryptography.utils import cached_property
 from pydantic import BaseModel, Field
 from tqdm import tqdm
+
+from ampelmatch.match.bayes_factor import BayesFactor
+from ampelmatch.match.prior import Prior
 
 logger = logging.getLogger(__name__)
 
@@ -12,8 +14,10 @@ logger = logging.getLogger(__name__)
 class StreamMatch(BaseModel):
     bayes_factor: Annotated[BayesFactor, Field(discriminator="match_type")]
     prior: Annotated[Prior, Field(discriminator="name")]
+    posterior_threshold: float
 
-    def calculate_posteriors(self):
+    @cached_property
+    def posteriors(self):
         logger.info("Calculating probabilities")
         bayes_factors = self.bayes_factor.evaluate()
         posteriors = {}
@@ -54,3 +58,18 @@ class StreamMatch(BaseModel):
 
             posteriors[source_id] = i_posteriors
         return posteriors
+
+    def match(self):
+        return {
+            source_id: {
+                sd_id: post.index[post > self.posterior_threshold].tolist()
+                for sd_id, post in posts.items()
+            }
+            for source_id, posts in self.posteriors.items()
+        }
+
+    def n_matches(self) -> float:
+        return sum(len(v2) for v1 in self.match().values() for v2 in v1.values())
+
+    def posterior_sum(self) -> float:
+        return sum(sum(v2) for v1 in self.posteriors.values() for v2 in v1.values())
