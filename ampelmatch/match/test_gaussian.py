@@ -3,7 +3,7 @@ import logging
 from pathlib import Path
 
 import matplotlib.pyplot as plt
-import numpy as np
+
 from ampelmatch.data.config import DatasetConfig
 from ampelmatch.data.dataset import DatasetGenerator
 from ampelmatch.data.plotter import Plotter
@@ -17,7 +17,7 @@ logger = logging.getLogger("ampelmatch.match.test_gaussian")
 
 
 if __name__ == "__main__":
-    logging.getLogger("ampelmatch").setLevel("INFO")
+    logging.getLogger("ampelmatch").setLevel("DEBUG")
     dset_config_fname = Path(__file__).parent / "test_sim.json"
     dset_config = DatasetConfig.model_validate_json(dset_config_fname.read_text())
     h = dset_config.get_hash()
@@ -42,6 +42,7 @@ if __name__ == "__main__":
     for i in range(1, dsets.n_transients + 1):
         batched_fns.append(dsets.filenames[: i * dsets.n_surveys])
 
+    a = min(s.fov * len(s.fields) for s in dset_config.surveys)
     for i, fns in enumerate(batched_fns):
         logger.info(f"Matching batch {i}")
         match_config = {
@@ -65,6 +66,7 @@ if __name__ == "__main__":
             "prior": {
                 "name": "surface_density",
                 "nside": 128,
+                "area_sqdg": a,
                 "primary_data": {
                     "filepath_or_buffer": fns[0],
                     "index_col": 0,
@@ -79,16 +81,4 @@ if __name__ == "__main__":
             },
         }
         match = match.StreamMatch.model_validate(match_config)
-        prod = sum([len(d) for d in match.bayes_factor.match_data_df])
-        prios_values = [
-            match.prior(match.bayes_factor.primary_data_df.loc[dd])
-            for dd in match.bayes_factor.primary_data_df.index.unique()
-        ]
-        a = min(s.fov for s in dset_config.surveys) * (np.pi / 180) ** 2
-        print(
-            sum(prios_values)
-            # * prod
-            * (a / (4 * np.pi)) ** (1 - len(match.bayes_factor.match_data_df)),
-            prod,
-        )
-        # probabilities = match.calculate_posteriors()
+        probabilities = match.calculate_posteriors()
