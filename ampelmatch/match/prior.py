@@ -13,9 +13,7 @@ from pydantic import (
     PositiveInt,
     computed_field,
     ConfigDict,
-    model_validator,
 )
-from typing_extensions import Self
 
 from ampelmatch.cache import cache_dir, compute_density_hash
 
@@ -28,10 +26,6 @@ class BasePrior(BaseModel, abc.ABC):
 
     @abc.abstractmethod
     def evaluate(self, data: pd.DataFrame) -> float: ...
-
-    @abc.abstractmethod
-    @model_validator(mode="after")
-    def check_self_consistency(self) -> Self: ...
 
     def __call__(self, data: pd.DataFrame) -> float:
         return self.evaluate(data)
@@ -67,20 +61,6 @@ class SurfaceDensityPrior(BasePrior, frozen=True):
         return self.compute_densities(
             [self.primary_data_df] + self.match_data_df, self.nside
         )
-
-    @model_validator(mode="after")
-    def check_self_consistency(self) -> Self:
-        prios_values = [
-            self.evaluate(self.primary_data_df.loc[dd])
-            for dd in self.primary_data_df.index.unique()
-        ]
-        a = self.area_sqdg * (np.pi / 180) ** 2
-        total_prior = sum(prios_values) * (a / (4 * np.pi)) ** -len(self.match_data_df)
-        logger.debug(f"total prior {total_prior}")
-        # TODO: decide on the tolerance which is very arbitrary at the moment
-        if not np.isclose(np.log2(total_prior), 0, atol=2):
-            raise ValueError(f"total prior {total_prior} is not close to 1")
-        return self
 
     @staticmethod
     @cachier(cache_dir=cache_dir, hash_func=compute_density_hash)
