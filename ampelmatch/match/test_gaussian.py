@@ -17,7 +17,7 @@ logger = logging.getLogger("ampelmatch.match.test_gaussian")
 
 
 if __name__ == "__main__":
-    logging.getLogger("ampelmatch").setLevel("DEBUG")
+    logging.getLogger("ampelmatch").setLevel("INFO")
     dset_config_fname = Path(__file__).parent / "test_sim.json"
     dset_config = DatasetConfig.model_validate_json(dset_config_fname.read_text())
     h = dset_config.get_hash()
