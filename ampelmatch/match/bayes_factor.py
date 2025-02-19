@@ -198,7 +198,7 @@ class BaseBayesFactor(BaseModel, abc.ABC):
             logger.debug(
                 "healpix resolution is better than disc radius, using query_disc"
             )
-            primary_hp_index = self.get_pixels_disc(ra, dec)
+            primary_hp_index = self.get_pmatchixels_disc(ra, dec)
         else:
             logger.debug(
                 f"healpix resolution {r} arcmin is worse than "
@@ -208,12 +208,15 @@ class BaseBayesFactor(BaseModel, abc.ABC):
 
         selected_data = []
         for m, mh in zip(match_data, match_data_hp_maps):
-            try:
-                hpi = mh.loc[primary_hp_index]
-            except KeyError:
+            pixels_in_search_region_with_sources = mh.index.intersection(
+                primary_hp_index
+            )
+            if len(pixels_in_search_region_with_sources) == 0:
                 continue
+            hpi = mh.loc[pixels_in_search_region_with_sources]
             logger.debug(f"selected {len(hpi)} sources")
             selected_data.append(m.loc[hpi])
+
         return selected_data
 
     def match(self):
