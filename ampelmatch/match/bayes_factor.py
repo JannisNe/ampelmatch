@@ -233,8 +233,12 @@ class BaseBayesFactor(BaseModel, abc.ABC):
             primary_data.index.unique(), desc="primary sources"
         ):
             i_primary_data = primary_data.loc[primary_source_id]
-            primary_mean_ra = i_primary_data["ra"].median()
-            primary_mean_dec = i_primary_data["dec"].median()
+            if isinstance(i_primary_data, pd.Series):
+                primary_mean_ra = i_primary_data["ra"]
+                primary_mean_dec = i_primary_data["dec"]
+            else:
+                primary_mean_ra = i_primary_data["ra"].median()
+                primary_mean_dec = i_primary_data["dec"].median()
 
             if primary_source_id in self.plot_indices:
                 fig, ax, axs = self.setup_plot(i_primary_data, n_secondary)
@@ -379,21 +383,23 @@ class IceCubeContourBayesFactor(BaseBayesFactor):
         gridspec = fig.add_gridspec(
             ncols=n_secondary + 1, width_ratios=[1] + n_secondary * [0.1]
         )
-        center = SkyCoord(
-            primary_data["ra"].median(), primary_data["dec"].median(), unit="deg"
-        )
+        if isinstance(primary_data, pd.Series):
+            ra = primary_data["ra"]
+            ra_med = ra
+            dec = primary_data["dec"]
+            dec_med = dec
+        else:
+            ra = primary_data["ra"].values
+            ra_med = primary_data["ra"].mean()
+            dec = primary_data["dec"].values
+            dec_med = primary_data["dec"].mean()
+        center = SkyCoord(ra_med, dec_med, unit="deg")
         ax = fig.add_subplot(
             gridspec[:, 0], projection="astro degrees mollweide", center=center
         )
         t = ax.get_transform("world")
         axs = [fig.add_subplot(gridspec[:, i]) for i in range(1, n_secondary + 1)]
-        ax.scatter(
-            primary_data["ra"].values,
-            primary_data["dec"].values,
-            c="r",
-            label="primary",
-            transform=t,
-        )
+        ax.scatter(ra, dec, c="r", label="primary", transform=t)
         return fig, ax, axs
 
     def plot_data(
