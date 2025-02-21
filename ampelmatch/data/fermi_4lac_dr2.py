@@ -40,5 +40,9 @@ class Fermi4LAC:
         fluxm = data.Energy_Flux100 > (10 ** (-11.6))
         m = classm & fluxm
         logger.info(f"Selected {m.sum()} sources")
-        data[classm & fluxm].to_csv(Fermi4LAC.selection_file, index=False)
+        (
+            data[classm & fluxm]
+            .rename(columns={"RAJ2000": "ra", "DEJ2000": "dec"})
+            .to_csv(Fermi4LAC.selection_file, index=False)
+        )
         logger.info(f"Saved selection to {Fermi4LAC.selection_file}")
