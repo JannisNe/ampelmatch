@@ -339,6 +339,7 @@ class GaussianBayesFactor(BaseBayesFactor):
 
 class IceCubeContourBayesFactor(BaseBayesFactor):
     match_type: Literal["icecube_contour"]
+    disc_radius_arcsec: None = None
 
     @staticmethod
     @functools.cache
