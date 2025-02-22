@@ -94,7 +94,7 @@ class BaseBayesFactor(BaseModel, abc.ABC):
     @computed_field
     @functools.cached_property
     def plot_indices(self) -> list[int]:
-        if isinstance(self.plot, int):
+        if self.plot and isinstance(self.plot, int):
             assert ligo_plot is not None, "ligo.skymap is not installed"
             logger.debug(f"selecting {self.plot} random sources to be plotted")
             return np.random.choice(
