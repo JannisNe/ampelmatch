@@ -2,6 +2,7 @@ import abc
 import functools
 import json
 import logging
+from os import replace
 from pathlib import Path
 from typing import Any, Dict, Union, Literal
 
@@ -31,12 +32,11 @@ class BaseBayesFactor(BaseModel, abc.ABC):
     name: str
     match_type: str
     nside: int
-    primary_data: dict
-    match_data: list[dict]
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     disc_radius_arcsec: float | None = 100
     plot: bool | PositiveInt = False
+    plot_indices: list[Any] | None = None
     plot_dir: Path | None = None
     markers: list[str] = [
         "o",
@@ -77,31 +77,6 @@ class BaseBayesFactor(BaseModel, abc.ABC):
         if values.get("plot_dir") is None:
             values["plot_dir"] = Path(values["name"]) / "plots"
         return values
-
-    @computed_field
-    @functools.cached_property
-    def primary_data_df(self) -> pd.DataFrame:
-        logger.info(f"Loading primary data")
-        logger.debug(f"primary data config: {self.primary_data}")
-        return pd.read_csv(**self.primary_data)
-
-    @computed_field
-    @functools.cached_property
-    def match_data_df(self) -> list[pd.DataFrame]:
-        logger.info("Loading match data")
-        logger.debug(f"match data config: {self.match_data}")
-        return [pd.read_csv(**d) for d in self.match_data]
-
-    @computed_field
-    @functools.cached_property
-    def plot_indices(self) -> list[int]:
-        if self.plot and isinstance(self.plot, int):
-            assert ligo_plot is not None, "ligo.skymap is not installed"
-            logger.debug(f"selecting {self.plot} random sources to be plotted")
-            return np.random.choice(
-                self.primary_data_df.index.unique(), self.plot, replace=False
-            )
-        return []
 
     def get_pixels_disc(self, ra, dec):
         vec = hp.ang2vec(ra, dec, lonlat=True)
@@ -220,15 +195,21 @@ class BaseBayesFactor(BaseModel, abc.ABC):
 
         return selected_data
 
-    def evaluate(self):
+    def evaluate(self, primary_data: pd.DataFrame, match_data: pd.DataFrame):
         logger.info("Matching streams")
-        primary_data = self.primary_data_df
-        match_data = self.match_data_df
         n_secondary = len(match_data)
 
         # Perform matching
         logger.info("matching ...")
         primary_source_bayes_factors = {}
+
+        if self.plot_indices is None:
+            if self.plot:
+                self.plot_indices = np.random.choice(
+                    primary_data.index.unique(), self.plot, replace=False
+                )
+            else:
+                self.plot_indices = []
 
         for primary_source_id in tqdm(
             primary_data.index.unique(), desc="primary sources"
