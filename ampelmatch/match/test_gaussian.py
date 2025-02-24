@@ -3,14 +3,15 @@ import logging
 from pathlib import Path
 
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 from ampelmatch.data.config import DatasetConfig
 from ampelmatch.data.dataset import DatasetGenerator
 from ampelmatch.data.plotter import Plotter
 from ampelmatch.data.surveys import SurveyGenerator
 from ampelmatch.data.transients import TransientGenerator
 from ampelmatch.match import match
-
-match = importlib.reload(match)
+from networkx.algorithms.bipartite import density
 
 logger = logging.getLogger("ampelmatch.match.test_gaussian")
 
@@ -80,10 +81,41 @@ if __name__ == "__main__":
             },
             "posterior_threshold": 0.95,
         }
-        match = match.StreamMatch.model_validate(match_config)
-        probabilities = match.posteriors
+        matcher = match.StreamMatch.model_validate(match_config)
+        probabilities = matcher.posteriors
+        primary_data = pd.read_csv(**matcher.primary_data)
+        match_data = [pd.read_csv(**d) for d in matcher.match_data]
+        matches = matcher.match()
+        eff = []
+        pur = []
+        for j in range(len(match_data)):
+            jmd = match_data[j]
+            jeff = []
+            jpur = []
+            for sid in primary_data.index.unique():
+                true_ids = jmd[jmd["source_index"] == sid].index
+                matched_ids = matches[sid][j]
+                good_matches = true_ids.intersection(matched_ids)
+                bad_matches = set(matched_ids) - set(true_ids)
+                jeff.append(len(good_matches) / len(true_ids))
+                jpur.append(len(bad_matches) / len(matched_ids))
+            eff.append(jeff)
+            pur.append(jpur)
+
         print(
-            match.n_matches(),
-            match.posterior_sum(),
-            len(match.match_data[0]),
+            matcher.n_matches(),
+            matcher.posterior_sum(),
+            len(match_data[0]),
+            [np.quantile(e, [0.05, 0.5, 0.95]) for e in eff],
+            [np.quantile(p, [0.05, 0.5, 0.95]) for p in pur],
         )
+
+        fig, axs = plt.subplots(ncols=2, figsize=(10, 5), sharey=True)
+        for e, p in zip(eff, pur):
+            axs[0].hist(e, density=True, nbins=50)
+            axs[1].hist(p, density=True, nbins=50)
+        axs[0].set_ylabel("density")
+        axs[0].set_xlabel("efficiency")
+        axs[0].set_xlabel("purity")
+        fig.savefig("performance.pdf")
+        plt.close()
