@@ -116,6 +116,6 @@ if __name__ == "__main__":
             axs[1].hist(p, density=True)
         axs[0].set_ylabel("density")
         axs[0].set_xlabel("efficiency")
-        axs[0].set_xlabel("purity")
+        axs[1].set_xlabel("purity")
         fig.savefig("performance.pdf")
         plt.close()
