@@ -98,7 +98,7 @@ if __name__ == "__main__":
                 good_matches = true_ids.intersection(matched_ids)
                 bad_matches = set(matched_ids) - set(true_ids)
                 jeff.append(len(good_matches) / len(true_ids))
-                jpur.append(len(bad_matches) / len(matched_ids))
+                jpur.append(1 - len(bad_matches) / len(matched_ids))
             eff.append(jeff)
             pur.append(jpur)
 
