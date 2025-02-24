@@ -34,17 +34,16 @@ class StreamMatch(BaseModel):
             i_posteriors = {}
 
             if source_id in self.bayes_factor.plot_indices:
-                primary_data = self.bayes_factor.primary_data_df.loc[source_id]
-                fig, ax, axs = self.bayes_factor.setup_plot(primary_data, len(bf))
+                fig, ax, axs = self.bayes_factor.setup_plot(
+                    primary_data.loc[source_id], len(bf)
+                )
 
             for sd_id, sdbf in bf.items():
-                p = self.prior(self.bayes_factor.primary_data_df.loc[source_id])
+                p = self.prior(primary_data.loc[source_id])
                 i_posteriors[sd_id] = (1 + (1 - p) / (p * sdbf)) ** (-1)
 
                 if source_id in self.bayes_factor.plot_indices:
-                    orig_sources = self.bayes_factor.match_data_df[sd_id].loc[
-                        i_posteriors[sd_id].index
-                    ]
+                    orig_sources = match_data[sd_id].loc[i_posteriors[sd_id].index]
                     orig_sources.loc[:, "marker"] = "s"
                     orig_sources.loc[:, "post"] = i_posteriors[sd_id]
                     self.bayes_factor.add_data_to_plot(
@@ -75,11 +74,11 @@ class StreamMatch(BaseModel):
     def n_matches(self) -> list[float]:
         return [
             sum([len(v[i]) for v in self.match().values()])
-            for i in range(len(self.bayes_factor.match_data_df))
+            for i in range(len(self.match_data))
         ]
 
     def posterior_sum(self) -> list[float]:
         return [
             sum([v[i].sum() for v in self.posteriors.values()])
-            for i in range(len(self.bayes_factor.match_data_df))
+            for i in range(len(self.match_data))
         ]

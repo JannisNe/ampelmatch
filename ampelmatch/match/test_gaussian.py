@@ -85,5 +85,5 @@ if __name__ == "__main__":
         print(
             match.n_matches(),
             match.posterior_sum(),
-            len(match.bayes_factor.match_data_df[0]),
+            len(match.match_data[0]),
         )
