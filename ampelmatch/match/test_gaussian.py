@@ -112,8 +112,8 @@ if __name__ == "__main__":
 
         fig, axs = plt.subplots(ncols=2, figsize=(10, 5), sharey=True)
         for e, p in zip(eff, pur):
-            axs[0].hist(e, density=True, nbins=50)
-            axs[1].hist(p, density=True, nbins=50)
+            axs[0].hist(e, density=True, bins=50)
+            axs[1].hist(p, density=True, bins=50)
         axs[0].set_ylabel("density")
         axs[0].set_xlabel("efficiency")
         axs[0].set_xlabel("purity")
