@@ -2,9 +2,8 @@ import logging
 from pathlib import Path
 
 import requests
-from astropy.table import Table
-
 from ampelmatch.cache import cache_dir
+from astropy.table import Table
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +14,7 @@ class Fermi4LAC:
 
     def __init__(self):
         self.data = self.load_data()
+        self.selection = None
 
     @staticmethod
     def load_data():
@@ -40,9 +40,10 @@ class Fermi4LAC:
         fluxm = data.Energy_Flux100 > (10 ** (-11.6))
         m = classm & fluxm
         logger.info(f"Selected {m.sum()} sources")
-        (
-            data[classm & fluxm]
-            .rename(columns={"RAJ2000": "ra", "DEJ2000": "dec"})
-            .to_csv(Fermi4LAC.selection_file, index=False)
+        self.selection = data[classm & fluxm].rename(
+            columns={"RAJ2000": "ra", "DEJ2000": "dec"}
         )
+
+    def dump_selection(self):
+        self.selection.to_csv(Fermi4LAC.selection_file, index=False)
         logger.info(f"Saved selection to {Fermi4LAC.selection_file}")
