@@ -3,7 +3,6 @@ import logging
 from pathlib import Path
 
 import matplotlib.pyplot as plt
-
 from ampelmatch.data.config import DatasetConfig
 from ampelmatch.data.dataset import DatasetGenerator
 from ampelmatch.data.plotter import Plotter
@@ -46,22 +45,22 @@ if __name__ == "__main__":
     for i, fns in enumerate(batched_fns):
         logger.info(f"Matching batch {i}")
         match_config = {
+            "primary_data": {
+                "filepath_or_buffer": fns[0],
+                "index_col": 0,
+                # "nrows": 700,
+            },
+            "match_data": [
+                {
+                    "filepath_or_buffer": fn,
+                }
+                for fn in fns[1:]
+            ],
             "bayes_factor": {
                 "name": f"{dset_config.name}/{h}/{i}_fine",
                 "match_type": "gaussian",
                 "plot": 10,
                 "nside": 1024,
-                "primary_data": {
-                    "filepath_or_buffer": fns[0],
-                    "index_col": 0,
-                    # "nrows": 700,
-                },
-                "match_data": [
-                    {
-                        "filepath_or_buffer": fn,
-                    }
-                    for fn in fns[1:]
-                ],
             },
             "prior": {
                 "name": "surface_density",
