@@ -1,5 +1,6 @@
 import abc
 import functools
+import json
 import logging
 from pathlib import Path
 from typing import Any, Dict, Union, Literal
@@ -343,15 +344,34 @@ class IceCubeContourBayesFactor(BaseBayesFactor):
 
     @staticmethod
     @functools.cache
-    def contour_pixels_indices(filename):
-        s, h = hp.read_map(filename, h=True)
-        h = dict(h)
-        if "Wilks theorem" in h["COMMENTS"]:
-            llh_level = 4.605170185988092
+    def contour_pixels_indices(filename: str | Path):
+        filename = Path(filename).resolve()
+        cache_file = filename.with_suffix(".cache")
+        if not cache_file.exists():
+            logger.debug(f"{cache_file} does not exist, calculating contour pixels")
+            s, h = hp.read_map(filename, h=True)
+            h = dict(h)
+            if "Wilks theorem" in h["COMMENTS"]:
+                llh_level = 4.605170185988092
+            else:
+                llh_level = 64.2
+            ctr_pix = np.where(s < llh_level)[0]
+            ctr_area = len(ctr_pix) * hp.nside2pixarea(h["NSIDE"])
+            res_str = json.dumps(
+                {
+                    "ctr_pix": ctr_pix.tolist(),
+                    "ctr_area": ctr_area,
+                    "llh_level": llh_level,
+                }
+            )
+            cache_file.write_text(res_str)
+            logger.debug(f"saved contour pixels to {cache_file}")
         else:
-            llh_level = 64.2
-        ctr_pix = np.where(s < llh_level)[0]
-        ctr_area = len(ctr_pix) * hp.nside2pixarea(h["NSIDE"])
+            logger.debug(f"reading contour pixels from {cache_file}")
+            res = json.loads(cache_file.read_text())
+            ctr_pix = np.array(res["ctr_pix"])
+            ctr_area = res["ctr_area"]
+            llh_level = res["llh_level"]
         logger.debug(f"{filename}: {ctr_area / SQDG_TO_SR} sqd")
         return ctr_pix, ctr_area, llh_level
 
