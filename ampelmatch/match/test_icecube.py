@@ -2,7 +2,7 @@ import logging
 from pathlib import Path
 
 import matplotlib.pyplot as plt
-
+import pandas as pd
 from ampelmatch.data.config import DatasetConfig
 from ampelmatch.data.dataset import DatasetGenerator
 from ampelmatch.data.icecube_alert import IceCubeAlerts
@@ -10,6 +10,7 @@ from ampelmatch.data.plotter import Plotter
 from ampelmatch.data.surveys import SurveyGenerator
 from ampelmatch.data.transients import TransientGenerator
 from ampelmatch.match.bayes_factor import BayesFactor
+from pydantic import TypeAdapter
 
 logger = logging.getLogger("ampelmatch.match.test_gaussian")
 
@@ -52,17 +53,10 @@ if __name__ == "__main__":
             "name": f"{dset_config.name}/{h}/{i}",
             "match_type": "icecube_contour",
             "disc_radius_arcsec": None,
-            "plot": 30,
+            "plot": False,
             "nside": 128,
-            "primary_data": {
-                "filepath_or_buffer": fns[0],
-                "index_col": 0,
-            },
-            "match_data": [
-                {
-                    "filepath_or_buffer": icecube_alert_filename,
-                }
-            ],
         }
-        match = BayesFactor.validate_python(match_config)
-        bayes_factors = match.evaluate()
+        match = TypeAdapter(BayesFactor).validate_python(match_config)
+        primary_data = pd.read_csv(fns[0], index_col=0)
+        match_data = [pd.read_csv(icecube_alert_filename)]
+        bayes_factors = match.evaluate(primary_data, match_data)
