@@ -1,11 +1,13 @@
 import abc
 import logging
 from functools import cached_property
-from typing import Literal, Union
+from typing import Literal, Union, Annotated
 
 import healpy as hp
 import numpy as np
 import pandas as pd
+from ampelmatch.cache import cache_dir, compute_density_hash
+from ampelmatch.match.bayes_factor import BayesFactor
 from cachier import cachier
 from pydantic import (
     BaseModel,
@@ -13,9 +15,9 @@ from pydantic import (
     PositiveInt,
     computed_field,
     ConfigDict,
+    Field,
 )
-
-from ampelmatch.cache import cache_dir, compute_density_hash
+from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
 
@@ -99,4 +101,33 @@ class SurfaceDensityPrior(BasePrior, frozen=True):
         return self.densities.loc[data_hp_index]
 
 
-Prior = Union[SurfaceDensityPrior]
+class RAScramblePrior(BasePrior, frozen=True):
+    name: Literal["ra_scramble"]
+    primary_data: dict
+    match_data: list[dict]
+    bayes_factor: Annotated[BayesFactor, Field(discriminator="match_type")]
+    n_scrambles: PositiveInt
+
+    def realize_scramble(self):
+        scrambled_match_data = []
+        for d in self.match_data:
+            d = pd.read_csv(**d)
+            d["ra"] = d["ra"].sample(frac=1).values
+            scrambled_match_data.append(d)
+        primary_data = pd.read_csv(**self.primary_data)
+        bayes_factors = self.bayes_factor.evaluate(primary_data, scrambled_match_data)
+        return bayes_factors
+
+    def scrambled_bayes_factors(self):
+        return [
+            self.realize_scramble()
+            for _ in tqdm(
+                range(self.n_scrambles), desc="Scrambling", total=self.n_scrambles
+            )
+        ]
+
+    def evaluate(self, data: pd.DataFrame) -> float:
+        pass
+
+
+Prior = Union[SurfaceDensityPrior, RAScramblePrior]

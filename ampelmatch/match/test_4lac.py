@@ -12,10 +12,11 @@ logger = logging.getLogger("ampelmatch.match.test_gaussian")
 
 
 if __name__ == "__main__":
-    logging.getLogger("ampelmatch").setLevel("DEBUG")
+    logging.getLogger("ampelmatch").setLevel("INFO")
     fermi_4lac = Fermi4LAC()
+    fermi_4lac.make_selection()
     if not fermi_4lac.selection_file.is_file():
-        fermi_4lac.make_selection()
+        fermi_4lac.dump_selection()
 
     icecube_alerts = IceCubeAlerts()
     icecube_alert_filename = Path("icecube_alerts.csv")
@@ -26,38 +27,41 @@ if __name__ == "__main__":
     match_config = {
         "bayes_factor": {
             "name": f"fermi_4lac_test",
-            "match_type": "gaussian",
-            "plot": 10,
+            "match_type": "icecube_contour",
+            "plot": False,
             "nside": 1024,
-            "primary_data": {
-                "filepath_or_buffer": fermi_4lac.selection_file,
-                "index_col": 0,
-                # "nrows": 700,
-            },
-            "match_data": [
-                {
-                    "filepath_or_buffer": fn,
-                }
-                for fn in fns[1:]
-            ],
         },
         "prior": {
-            "name": "surface_density",
-            "nside": 128,
-            "area_sqdg": a,
+            "name": "ra_scramble",
+            "bayes_factor": {
+                "name": f"fermi_4lac_test_prior",
+                "match_type": "icecube_contour",
+                "plot": False,
+                "nside": 1024,
+            },
+            "n_scrambles": 100,
             "primary_data": {
-                "filepath_or_buffer": fns[0],
-                "index_col": 0,
-                # "nrows": 700,
+                "filepath_or_buffer": fermi_4lac.selection_file,
             },
             "match_data": [
                 {
-                    "filepath_or_buffer": fermi_4lac.selection_file,
+                    "filepath_or_buffer": icecube_alert_filename,
                 }
             ],
         },
         "posterior_threshold": 0.95,
+        "primary_data": {
+            "filepath_or_buffer": fermi_4lac.selection_file,
+        },
+        "match_data": [
+            {
+                "filepath_or_buffer": icecube_alert_filename,
+            }
+        ],
     }
     matcher = match.StreamMatch.model_validate(match_config)
-    probabilities = matcher.posteriors
-    match = matcher.match()
+    scrambles = matcher.prior.scrambled_bayes_factors()
+    w = (
+        fermi_4lac.selection["Energy_Flux100"]
+        / fermi_4lac.selection["Energy_Flux100"].sum()
+    )
