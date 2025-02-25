@@ -2,7 +2,6 @@ import abc
 import functools
 import json
 import logging
-from os import replace
 from pathlib import Path
 from typing import Any, Dict, Union, Literal
 
@@ -11,12 +10,11 @@ import healpy as hp
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from ampelmatch.cache import dataframe_hash
 from astropy.coordinates import angular_separation, SkyCoord
-from ligo.skymap import plot as ligo_plot
 from matplotlib import cm, colors
 from pydantic import (
     BaseModel,
-    computed_field,
     ConfigDict,
     model_validator,
     PositiveInt,
@@ -195,7 +193,7 @@ class BaseBayesFactor(BaseModel, abc.ABC):
 
         return selected_data
 
-    def evaluate(self, primary_data: pd.DataFrame, match_data: pd.DataFrame):
+    def evaluate(self, primary_data: pd.DataFrame, match_data: list[pd.DataFrame]):
         logger.info("Matching streams")
         n_secondary = len(match_data)
 
@@ -322,6 +320,7 @@ class GaussianBayesFactor(BaseBayesFactor):
 class IceCubeContourBayesFactor(BaseBayesFactor):
     match_type: Literal["icecube_contour"]
     disc_radius_arcsec: None = None
+    contour_cache: dict = {}
 
     @staticmethod
     @functools.cache
@@ -356,6 +355,36 @@ class IceCubeContourBayesFactor(BaseBayesFactor):
         logger.debug(f"{filename}: {ctr_area / SQDG_TO_SR} sqd")
         return ctr_pix, ctr_area, llh_level
 
+    def get_contour_cache(self, data):
+        h = dataframe_hash(data)
+        if h not in self.contour_cache:
+            logger.info("making contour cache")
+            nsides = data["nside"].unique()
+            logger.debug(f"unique nsides: {nsides}")
+            cache_dict = {}
+            for nside in nsides:
+                m = data["nside"] == nside
+                logger.debug(f"nside {nside}: {m.sum()} sources")
+                pixels = {i: [] for i in range(hp.nside2npix(nside))}
+                values = pd.DataFrame(
+                    index=data[m].index,
+                    columns=["bayes_factor_in", "bayes_factor_out"],
+                    dtype=float,
+                )
+                for i, r in data[m].iterrows():
+                    ctr_pix, ctr_area, llh_level = self.contour_pixels_indices(
+                        r["filename"]
+                    )
+                    values.loc[i, "bayes_factor_in"] = 0.9 * (4 * np.pi) / ctr_area
+                    values.loc[i, "bayes_factor_out"] = 0.1 / (
+                        1 - ctr_area / (4 * np.pi)
+                    )
+                    for p in ctr_pix:
+                        pixels[p].append(i)
+                cache_dict[nside] = (pixels, values)
+            self.contour_cache[h] = cache_dict
+        return self.contour_cache[h]
+
     def calculate_bayes_factors(
         self,
         primary_ra: float,
@@ -364,18 +393,17 @@ class IceCubeContourBayesFactor(BaseBayesFactor):
         orig_sources: pd.DataFrame,
     ) -> pd.Series:
         bayes_factors = pd.Series(0.0, index=orig_sources.index)
-        nside = 0
-        pix = None
-        for i, r in orig_sources.iterrows():
-            indices, area, _ = self.contour_pixels_indices(r["filename"])
-            if r["nside"] != nside:
-                pix = hp.ang2pix(r["nside"], primary_ra, primary_dec, lonlat=True)
-                nside = r["nside"]
-            if pix in indices:
-                logger.debug(f"source within contour {i}: {r['filename']}")
-                bayes_factors.loc[i] = 0.9 * (4 * np.pi) / area
-            else:
-                bayes_factors.loc[i] = 0.1 / (1 - area / (4 * np.pi))
+        contour_cache = self.get_contour_cache(orig_sources)
+        pix_indices = np.atleast_1d(
+            hp.ang2pix(list(contour_cache.keys()), primary_ra, primary_dec, lonlat=True)
+        )
+        for pix_index, (pixels, values) in zip(pix_indices, contour_cache.values()):
+            in_indices = pixels[pix_index]
+            out_indices = values.index.difference(in_indices)
+            for i, s in zip([in_indices, out_indices], ["in", "out"]):
+                if len(i) > 0:
+                    logger.debug(f"{s}side {len(in_indices)} contours")
+                    bayes_factors.loc[i] = values.loc[i, f"bayes_factor_{s}"]
         return bayes_factors
 
     def setup_plot(
