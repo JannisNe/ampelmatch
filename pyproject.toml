@@ -7,9 +7,10 @@ license = "MIT"
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = ">=3.12,<4.0"
 skysurvey = "^0.17.2"
 ampel-hu-astro = {path = "/Users/jannisnecker/Software/Ampel-HU-astro", develop = true}
+ampel-ztf = {path = "/Users/jannisnecker/Software/Ampel-ZTF", develop = true}
 rich = "^13.9.4"
 ztfquery = "^1.28.0"
 tqdm = "^4.67.1"
@@ -21,6 +22,7 @@ ligo-skymap = "^2.1.2"
 black = "^25.1.0"
 isort = "^6.0.0"
 ruff = "^0.9.7"
+healpy = "1.18.0"
 
 
 [build-system]
