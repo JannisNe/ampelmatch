@@ -12,6 +12,7 @@ import numpy as np
 import pandas as pd
 from ampelmatch.cache import dataframe_hash
 from astropy.coordinates import angular_separation, SkyCoord
+from ligo.skymap import plot as ligo_plot
 from matplotlib import cm, colors
 from pydantic import (
     BaseModel,
@@ -292,6 +293,7 @@ class GaussianBayesFactor(BaseBayesFactor):
     def setup_plot(
         self, primary_data: pd.DataFrame, n_secondary: int
     ) -> tuple[plt.Figure, plt.Axes, list[plt.Axes]]:
+        assert ligo_plot is not None, "ligo.skymap is not installed"
         fig = plt.figure()
         gridspec = fig.add_gridspec(
             ncols=n_secondary + 1, width_ratios=[1] + n_secondary * [0.1]
