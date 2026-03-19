@@ -1,7 +1,6 @@
 import logging
 from pathlib import Path
 
-import ampelmatch
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -10,32 +9,33 @@ SQARCSEC_TO_SR = np.radians(1 / 3600) ** 2
 
 
 def prior_plot():
-
-    area = 2.0  # sq deg
     sigma_1 = 0.1  # arcsec
-    sigma_2 = 2.5  # arcsec
+    sigma_2 = 0.2  # arcsec
     ssum = sigma_1**2 + sigma_2**2
-    psi = np.linspace(0, 30, 100)  # arcsec
+    psi = np.linspace(0, 3, 100)  # arcsec
     b = 2 / ssum * np.exp(-(psi**2) / (2 * ssum)) / SQARCSEC_TO_SR
     posts = []
-    densities = [1e5, 1e6, 1e7, 8.5e11]
+    simple_posts = []
+    densities = [1e4, 1e5, 1e6, 1e11]
     for density in densities:
-        prior = 1 / (density * (np.pi / 180) ** 2 * 4 * np.pi)
+        prior = 1 / (density * (180 / np.pi) ** 2 * 4 * np.pi)
         logger.info(f"Prior: {prior}")
         posts.append((1 + (1 - prior) / (prior * b)) ** -1)
+        simple_posts.append(b * prior / (1 + b * prior))
 
     fig, ax = plt.subplots()
     ax2 = ax.twinx()
-    ax.plot(psi, np.log10(b), label="WOE", color="blue")
-    for p, d, ls in zip(posts, densities, ["-", "--", ":", "-."]):
-        ax2.plot(psi, p, label=f"{d:.0e} / sqdg", color="red", linestyle=ls)
+    ax.plot(psi, np.log10(b), label=r"$\log _{10}(B)$", color="blue")
+    for p, sp, d, ls in zip(posts, simple_posts, densities, ["-", "--", ":", "-."]):
+        ax2.plot(psi, sp, label=f"{d:.0e}", color="red", linestyle=ls)
     ax.set_xlabel("Separation (arcsec)")
-    ax.set_ylabel(r"WOE")
+    ax.set_ylabel(r"$\log _{10}(B)$")
     ax2.set_ylabel("Posterior")
     ax2.set_ylim(0, 1)
+    ax2.axhline(0.9, color="red", linestyle="--")
     ax.set_ylim(-2, 13)
-    ax.legend(loc="upper left")
-    ax2.legend(loc="upper right")
+    ax.legend(loc="lower left")
+    ax2.legend(loc="lower right", title="Prior [deg$^{-2}$]")
     fn = Path("prior.pdf").resolve()
     logger.info(f"Saving plot to {fn}")
     fig.savefig(fn)
