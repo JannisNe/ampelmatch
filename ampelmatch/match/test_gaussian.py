@@ -1,4 +1,3 @@
-import importlib
 import logging
 from pathlib import Path
 
@@ -11,7 +10,6 @@ from ampelmatch.data.plotter import Plotter
 from ampelmatch.data.surveys import SurveyGenerator
 from ampelmatch.data.transients import TransientGenerator
 from ampelmatch.match import match
-from networkx.algorithms.bipartite import density
 
 logger = logging.getLogger("ampelmatch.match.test_gaussian")
 
